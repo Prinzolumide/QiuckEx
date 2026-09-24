@@ -1,0 +1,24 @@
+{
+  "default_branch": "main",
+  "branches": [
+    "dependabot/cargo/app/contract/cargo-deps-eaa36bd821",
+    "fix-admin-auth-headers-1032",
+    "main",
+    "origin",
+    "revert-955-feat/fe-58-remove-mock-listing-fallbacks"
+  ],
+  "parent": {
+    "dependabot/cargo/app/contract/cargo-deps-eaa36bd821": "main",
+    "fix-admin-auth-headers-1032": "main",
+    "main": null,
+    "origin": "main",
+    "revert-955-feat/fe-58-remove-mock-listing-fallbacks": "main"
+  },
+  "order": [
+    "main",
+    "dependabot/cargo/app/contract/cargo-deps-eaa36bd821",
+    "fix-admin-auth-headers-1032",
+    "origin",
+    "revert-955-feat/fe-58-remove-mock-listing-fallbacks"
+  ]
+}
