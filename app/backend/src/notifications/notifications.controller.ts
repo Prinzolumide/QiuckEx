@@ -1,15 +1,29 @@
 import { Body, Controller, Get, Param, Post, Query, Req } from "@nestjs/common";
+import { ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
 import { InAppNotificationRepository } from "./in-app-notification.repository";
 import { MarkManyReadDto } from "./dto/mark-many-read.dto";
+import { InAppNotificationResponseDto } from "./dto/in-app-notification-response.dto";
 import { RateLimitTier } from "../auth/decorators/rate-limit-group.decorator";
 
+@ApiTags("notifications")
 @Controller("notifications")
 export class NotificationsController {
   constructor(private readonly inAppRepo: InAppNotificationRepository) {}
 
   @Get("in-app")
   @RateLimitTier("public-read")
-  getInApp(@Req() req, @Query("page") page = 1, @Query("limit") limit = 20) {
+  @ApiOperation({ summary: "Get in-app notifications for the authenticated user" })
+  @ApiQuery({ name: "page", required: false, type: Number, example: 1 })
+  @ApiQuery({ name: "limit", required: false, type: Number, example: 20 })
+  @ApiOkResponse({
+    description: "Array of in-app notifications",
+    type: [InAppNotificationResponseDto],
+  })
+  async getInApp(
+    @Req() req: any,
+    @Query("page") page = 1,
+    @Query("limit") limit = 20,
+  ): Promise<InAppNotificationResponseDto[]> {
     return this.inAppRepo.findByUser(req.user.publicKey, page, limit);
   }
 
