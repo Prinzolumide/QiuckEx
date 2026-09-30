@@ -29,6 +29,10 @@ import {
   VerifyReceiptHashResponse,
 } from "./dto/receipt.dto";
 import { RateLimitTier } from "../auth/decorators/rate-limit-group.decorator";
+import {
+  RequiresIndexerLagCheck,
+  IndexerLagPolicy,
+} from "../indexer-lag/requires-indexer-lag-check.decorator";
 
 @Controller("v1/receipts")
 export class ReceiptsController {
@@ -49,6 +53,10 @@ export class ReceiptsController {
   @Get("tx/:txHash")
   @RateLimitTier("public-read")
   @HttpCode(HttpStatus.OK)
+  // Joins live Horizon/RPC data against the indexed `receipts` table. A
+  // receipt that silently omits its indexed metadata reads as a valid receipt
+  // with fewer fields, so this route fails closed rather than degrading.
+  @RequiresIndexerLagCheck(IndexerLagPolicy.FAIL_CLOSED)
   async getByTxHash(
     @Param("txHash") txHash: string,
     @Query("operationIndex", new DefaultValuePipe(0), ParseIntPipe)
@@ -75,6 +83,10 @@ export class ReceiptsController {
   @Get("address/:address")
   @RateLimitTier("search")
   @HttpCode(HttpStatus.OK)
+  // A receipt history list is a browse surface: entries are ordered newest
+  // first and the caller can re-poll, so serving a slightly stale list with an
+  // explicit staleness header is better than failing the whole page.
+  @RequiresIndexerLagCheck(IndexerLagPolicy.STALE_HEADER)
   async getByAddress(
     @Param("address") address: string,
     @Query() query: Partial<GetReceiptsByAddressDto>,
@@ -95,6 +107,11 @@ export class ReceiptsController {
    * Verifies that a receipt hash matches the provided canonical inputs.
    * Used by indexers and support tooling to validate receipt integrity
    * without needing to fetch the full receipt.
+   *
+   * Deliberately NOT decorated with @RequiresIndexerLagCheck(): this route is
+   * a pure function of the caller's own body and touches no indexed data, so
+   * indexer state cannot make its answer wrong. Blocking it would stop callers
+   * from verifying integrity precisely when the indexer is misbehaving.
    */
   @Post("verify-hash")
   @RateLimitTier("mutation")

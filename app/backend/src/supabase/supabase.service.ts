@@ -34,6 +34,30 @@ export interface FeaturedProfileResult extends SearchProfileResult {
   featured_rank: number | null;
 }
 
+/**
+ * The editable presentation fields behind `GET`/`PUT /profile`.
+ *
+ * Mirrors `ProfileCustomization` in `src/usernames/usernames.repository.ts`;
+ * kept local to match how every other usernames type is duplicated in this
+ * file (see `SearchProfileResult`).
+ */
+export interface ProfileCustomization {
+  primary_color: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+  twitter_handle: string | null;
+  discord_handle: string | null;
+  github_handle: string | null;
+}
+
+export interface ProfileResult extends ProfileCustomization {
+  id: string;
+  username: string;
+  public_key: string;
+  created_at: string;
+  is_public: boolean;
+}
+
 export interface MarketplaceListing {
   id: string;
   username: string;
@@ -659,6 +683,28 @@ export class SupabaseService {
   }
 
   /**
+   * Fetch the full profile row (including presentation fields) for a public
+   * profile. The `is_public = true` filter is baked into the query, so there is
+   * no TOCTOU window between a visibility check and the data fetch.
+   */
+  async getPublicProfileForDisplay(
+    username: string,
+  ): Promise<ProfileResult | null> {
+    const { data, error } = await this.client
+      .from("usernames")
+      .select(
+        "id, username, public_key, created_at, is_public, primary_color, avatar_url, bio, twitter_handle, discord_handle, github_handle",
+      )
+      .eq("username", username)
+      .eq("is_public", true)
+      .maybeSingle();
+
+    if (error) this.handleError(error);
+
+    return (data as ProfileResult) ?? null;
+  }
+
+  /**
    * Toggle public profile visibility
    */
   async togglePublicProfile(
@@ -674,6 +720,60 @@ export class SupabaseService {
       .eq("username", username);
 
     if (error) this.handleError(error);
+  }
+
+  /**
+   * Load a profile with its presentation fields, ignoring visibility.
+   *
+   * Used by `GET /profile`, which the owner calls on their own profile even
+   * while `is_public` is false, so the settings page can show current values
+   * for a private profile. Ownership is verified by the caller.
+   */
+  async getProfileForOwner(username: string): Promise<ProfileResult | null> {
+    const { data, error } = await this.client
+      .from("usernames")
+      .select(
+        "id, username, public_key, created_at, is_public, primary_color, avatar_url, bio, twitter_handle, discord_handle, github_handle",
+      )
+      .eq("username", username)
+      .maybeSingle();
+
+    if (error) this.handleError(error);
+
+    return (data as ProfileResult) ?? null;
+  }
+
+  /**
+   * Persist the presentation fields for a profile row and return the new state.
+   *
+   * Returning the row rather than void lets the controller echo exactly what was
+   * persisted, so the client does not have to guess how the database normalized
+   * the values.
+   */
+  async updateProfileCustomization(
+    username: string,
+    customization: ProfileCustomization,
+  ): Promise<ProfileResult | null> {
+    const { data, error } = await this.client
+      .from("usernames")
+      .update({
+        primary_color: customization.primary_color,
+        avatar_url: customization.avatar_url,
+        bio: customization.bio,
+        twitter_handle: customization.twitter_handle,
+        discord_handle: customization.discord_handle,
+        github_handle: customization.github_handle,
+        last_active_at: new Date().toISOString(),
+      })
+      .eq("username", username)
+      .select(
+        "id, username, public_key, created_at, is_public, primary_color, avatar_url, bio, twitter_handle, discord_handle, github_handle",
+      )
+      .maybeSingle();
+
+    if (error) this.handleError(error);
+
+    return (data as ProfileResult) ?? null;
   }
 
   async createListing(

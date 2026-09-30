@@ -33,6 +33,12 @@ type BusinessExceptionPayload = {
   message?: string | string[];
   code?: string;
   field?: string;
+  /**
+   * Structured diagnostics. Carried through to `error.details` so callers of
+   * e.g. the indexer lag guard receive the ledger numbers that explain *why*
+   * the request was rejected, rather than only a generic code.
+   */
+  details?: unknown;
 };
 
 type HttpExceptionResponse =
@@ -123,6 +129,18 @@ export class GlobalHttpExceptionFilter implements ExceptionFilter {
 
         if (business.field) {
           details = { field: business.field };
+        }
+
+        if (business.details !== undefined) {
+          const base =
+            typeof details === "object" && details !== null
+              ? (details as Record<string, unknown>)
+              : {};
+          const extra =
+            typeof business.details === "object" && business.details !== null
+              ? (business.details as Record<string, unknown>)
+              : { detail: business.details };
+          details = { ...base, ...extra };
         }
       }
     } else if (exception instanceof Error) {

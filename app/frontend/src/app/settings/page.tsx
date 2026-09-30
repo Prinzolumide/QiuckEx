@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { NetworkBadge } from "@/components/NetworkBadge";
@@ -8,65 +8,275 @@ import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import '@/lib/i18n';
 import { useTranslation } from "react-i18next";
 import { getQuickexApiBase, fetchWithAuth } from "@/lib/api";
+import { useWallet } from "@/hooks/useWallet";
+
+/**
+ * The editable profile fields, as the backend models them.
+ *
+ * Every field is nullable on the wire (NULL means "not configured"), but the
+ * text inputs cannot hold null, so the form works in `""` throughout and the
+ * backend collapses a blank submission back to NULL.
+ */
+interface ProfileForm {
+  primaryColor: string;
+  avatarUrl: string;
+  bio: string;
+  twitterHandle: string;
+  discordHandle: string;
+  githubHandle: string;
+}
+
+const EMPTY_FORM: ProfileForm = {
+  primaryColor: "#6366f1",
+  avatarUrl: "",
+  bio: "",
+  twitterHandle: "",
+  discordHandle: "",
+  githubHandle: "",
+};
+
+/** A username claimed by the connected wallet. */
+interface OwnedUsername {
+  id: string;
+  username: string;
+  created_at: string;
+}
+
+type LoadState = "idle" | "loading" | "ready" | "no-wallet" | "no-username" | "error";
+
+/**
+ * Pull a human-usable message out of the backend's error envelope.
+ *
+ * `GlobalHttpExceptionFilter` produces `{ error: { code, message, fields } }`,
+ * and the global `ValidationPipe` puts per-field problems in `fields`. Showing
+ * the server's own message beats a generic "something went wrong", because it
+ * is the only thing that tells the user which field was rejected.
+ */
+function describeApiError(body: unknown, fallback: string): string {
+  if (!body || typeof body !== "object") return fallback;
+  const error = (body as { error?: unknown }).error;
+  if (!error || typeof error !== "object") return fallback;
+
+  const { message, fields } = error as {
+    message?: unknown;
+    fields?: Record<string, unknown>;
+  };
+
+  const fieldMessages =
+    fields && typeof fields === "object"
+      ? Object.entries(fields)
+          .map(([field, detail]) => `${field}: ${String(detail)}`)
+          .join(" ")
+      : "";
+
+  const text = typeof message === "string" ? message : "";
+  const combined = [text, fieldMessages].filter(Boolean).join(" — ");
+  return combined || fallback;
+}
 
 export default function Settings() {
   const { t } = useTranslation();
-  const [form, setForm] = useState({
-    username: "john_doe",
-    primaryColor: "#6366f1",
-    avatarUrl: "",
-    bio: "",
-    twitterHandle: "",
-    discordHandle: "",
-    githubHandle: "",
-  });
+  const { wallet, isRestoring } = useWallet();
+  const publicKey = wallet.publicKey;
+
+  const [form, setForm] = useState<ProfileForm>(EMPTY_FORM);
+  const [ownedUsernames, setOwnedUsernames] = useState<OwnedUsername[]>([]);
+  const [selectedUsername, setSelectedUsername] = useState<string | null>(null);
+  const [loadState, setLoadState] = useState<LoadState>("idle");
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [showPreview, setShowPreview] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle");
+  const [saveError, setSaveError] = useState<string | null>(null);
 
+  /**
+   * Step 1: find out which usernames this wallet owns.
+   *
+   * The profile endpoints are keyed by (username, publicKey), so the page has
+   * to discover the username before it can load or save a profile. A wallet may
+   * own several, so the newest is preselected and the rest stay reachable via a
+   * selector.
+   */
   useEffect(() => {
-    let mounted = true;
-    const loadProfile = async () => {
+    if (isRestoring) return;
+    if (!publicKey) {
+      setOwnedUsernames([]);
+      setSelectedUsername(null);
+      setLoadState("no-wallet");
+      return;
+    }
+
+    let cancelled = false;
+    setLoadState("loading");
+    setLoadError(null);
+
+    (async () => {
       try {
-        const res = await fetchWithAuth(`${getQuickexApiBase()}/profile`);
-        if (res.ok) {
-          const data = await res.json();
-          if (mounted) {
-            setForm((prev) => ({ ...prev, ...data }));
-          }
+        const query = new URLSearchParams({ publicKey });
+        const res = await fetchWithAuth(
+          `${getQuickexApiBase()}/username?${query.toString()}`,
+        );
+        if (cancelled) return;
+
+        if (!res.ok) {
+          setLoadState("error");
+          setLoadError(describeApiError(await res.json().catch(() => null), t("settingsLoadFailed")));
+          return;
         }
+
+        const data = (await res.json()) as { usernames?: OwnedUsername[] };
+        if (cancelled) return;
+
+        const owned = data.usernames ?? [];
+        setOwnedUsernames(owned);
+
+        if (owned.length === 0) {
+          setSelectedUsername(null);
+          setLoadState("no-username");
+          return;
+        }
+
+        // The backend returns the wallet's usernames oldest-first, so the last
+        // entry is the most recently claimed and the likeliest thing to edit.
+        setSelectedUsername(owned[owned.length - 1].username);
+        setLoadState("idle");
       } catch (err) {
-        console.error("Failed to load profile", err);
+        if (cancelled) return;
+        setLoadState("error");
+        setLoadError(
+          err instanceof Error ? err.message : t("settingsLoadFailed"),
+        );
       }
-    };
-    loadProfile();
+    })();
+
     return () => {
-      mounted = false;
+      cancelled = true;
     };
+  }, [publicKey, isRestoring]);
+
+  /**
+   * Step 2: load the selected profile's current values.
+   */
+  useEffect(() => {
+    if (!publicKey || !selectedUsername) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const query = new URLSearchParams({
+          username: selectedUsername,
+          publicKey,
+        });
+        const res = await fetchWithAuth(
+          `${getQuickexApiBase()}/profile?${query.toString()}`,
+        );
+        if (cancelled) return;
+
+        if (!res.ok) {
+          setLoadState("error");
+          setLoadError(describeApiError(await res.json().catch(() => null), t("settingsLoadFailed")));
+          return;
+        }
+
+        const data = (await res.json()) as Partial<Record<keyof ProfileForm, string | null>>;
+        if (cancelled) return;
+
+        setForm({
+          primaryColor: data.primaryColor ?? EMPTY_FORM.primaryColor,
+          avatarUrl: data.avatarUrl ?? "",
+          bio: data.bio ?? "",
+          twitterHandle: data.twitterHandle ?? "",
+          discordHandle: data.discordHandle ?? "",
+          githubHandle: data.githubHandle ?? "",
+        });
+        setLoadState("ready");
+        setLoadError(null);
+      } catch (err) {
+        if (cancelled) return;
+        setLoadState("error");
+        setLoadError(
+          err instanceof Error ? err.message : t("settingsLoadFailed"),
+        );
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [publicKey, selectedUsername]);
+
+  // Switching profiles must not carry the previous profile's values over.
+  const selectUsername = useCallback((username: string) => {
+    setSelectedUsername(username);
+    setForm(EMPTY_FORM);
+    setLoadState("loading");
+    setSaveStatus("idle");
+    setSaveError(null);
   }, []);
 
-  const handleSave = async () => {
+  const canSave = Boolean(publicKey && selectedUsername) && loadState === "ready";
+
+  const handleSave = useCallback(async () => {
+    if (!publicKey || !selectedUsername) return;
+
     setIsSaving(true);
     setSaveStatus("idle");
+    setSaveError(null);
+
     try {
       const res = await fetchWithAuth(`${getQuickexApiBase()}/profile`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          username: selectedUsername,
+          publicKey,
+          ...form,
+        }),
       });
 
       if (!res.ok) {
-        throw new Error("Failed to save profile");
+        setSaveError(describeApiError(await res.json().catch(() => null), t("settingsSaveFailed")));
+        setSaveStatus("error");
+        return;
       }
+
       setSaveStatus("success");
       setTimeout(() => setSaveStatus("idle"), 3000);
-    } catch {
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : t("settingsSaveFailed"));
       setSaveStatus("error");
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [publicKey, selectedUsername, form, t]);
+
+  const preview = useMemo(() => ({ ...form, username: selectedUsername ?? "" }), [form, selectedUsername]);
+
+  if (loadState === "no-wallet") {
+    return (
+      <div className="relative min-h-screen text-foreground">
+        <NetworkBadge />
+        <main className="relative z-10 p-6 sm:p-12 max-w-xl mx-auto">
+          <h1 className="text-2xl font-black mb-3">{t("settingsTitle")}</h1>
+          <p className="text-subtle text-sm">{t("settingsNoWallet")}</p>
+        </main>
+      </div>
+    );
+  }
+
+  if (loadState === "no-username") {
+    return (
+      <div className="relative min-h-screen text-foreground">
+        <NetworkBadge />
+        <main className="relative z-10 p-6 sm:p-12 max-w-xl mx-auto">
+          <h1 className="text-2xl font-black mb-3">{t("settingsTitle")}</h1>
+          <p className="text-subtle text-sm">{t("settingsNoUsername")}</p>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-screen text-foreground selection:bg-indigo-500/30">
@@ -128,14 +338,14 @@ export default function Settings() {
             {t('profileCustomization')}
           </h1>
           <p className="text-subtle font-medium text-sm sm:text-base">
-            {t('profileCustomizationDescription', { username: form.username })}
+            {t('profileCustomizationDescription', { username: selectedUsername ?? "…" })}
           </p>
         </header>
 
         {/* Mobile subheader */}
         <div className="md:hidden mb-6">
           <p className="text-subtle text-sm">
-            {t('profileCustomizationDescription', { username: form.username })}
+            {t('profileCustomizationDescription', { username: selectedUsername ?? "…" })}
           </p>
         </div>
 
@@ -148,19 +358,51 @@ export default function Settings() {
           </Link>
           <Link
             href="/settings/teams"
-            className="px-4 py-2 rounded-xl border border-border-strong text-sm font-semibold hover:bg-surface"
+            className="px-4 py-2 rounded-xl border border-border-strong bg-surface-strong text-sm font-semibold hover:bg-surface"
           >
             Team
           </Link>
           <Link
             href="/settings/developer"
-            className="px-4 py-2 rounded-xl border border-border-strong text-sm font-semibold hover:bg-surface"
+            className="px-4 py-2 rounded-xl border border-border-strong bg-surface-strong text-sm font-semibold hover:bg-surface"
           >
             {t('developerTab')}
           </Link>
         </nav>
 
+        {loadState === "error" && (
+          <div className="mb-6 rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-300">
+            {loadError ?? t("settingsLoadFailed")}
+          </div>
+        )}
+
+        {loadState === "loading" && (
+          <div className="mb-6 rounded-2xl border border-border bg-card p-4 text-sm text-subtle">
+            {t("settingsLoadingProfile")}
+          </div>
+        )}
+
+        {ownedUsernames.length > 1 && (
+          <div className="mb-6 max-w-sm">
+            <label className="block text-xs sm:text-sm font-bold text-subtle mb-2">
+              {t("settingsEditingProfile")}
+            </label>
+            <select
+              value={selectedUsername ?? ""}
+              onChange={(e) => selectUsername(e.target.value)}
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-surface border border-border-strong text-foreground text-sm sm:text-base"
+            >
+              {ownedUsernames.map((entry) => (
+                <option key={entry.id} value={entry.username}>
+                  @{entry.username}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
+
           {/* Settings Form */}
           <div className="space-y-4 sm:space-y-6">
             {/* Theme Settings Card */}
@@ -242,7 +484,7 @@ export default function Settings() {
             {/* Social Links Card */}
             <div className="rounded-2xl sm:rounded-3xl bg-card border border-border p-5 sm:p-6 md:p-8">
               <h2 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6">
-                Social Links
+                {t('socialLinks')}
               </h2>
 
               <div className="space-y-4">
@@ -306,10 +548,10 @@ export default function Settings() {
               <div className="flex gap-3 sm:gap-4">
                 <button
                   onClick={handleSave}
-                  disabled={isSaving}
+                  disabled={isSaving || !canSave}
                   className="flex-1 px-4 sm:px-6 py-3 sm:py-4 bg-indigo-500 text-white font-bold rounded-xl hover:scale-105 active:scale-95 transition text-sm sm:text-base disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed"
                 >
-                  {isSaving ? "Saving..." : t('saveChanges')}
+                  {isSaving ? t('settingsSaving') : t('saveChanges')}
                 </button>
                 <button
                   onClick={() => setShowPreview(!showPreview)}
@@ -318,8 +560,12 @@ export default function Settings() {
                   {showPreview ? t('hide') : t('show')} {t('preview')}
                 </button>
               </div>
-              {saveStatus === "success" && <p className="text-sm text-green-500 font-medium px-1">Profile saved successfully!</p>}
-              {saveStatus === "error" && <p className="text-sm text-red-500 font-medium px-1">Failed to save profile. Please try again.</p>}
+              {saveStatus === "success" && <p className="text-sm text-green-500 font-medium px-1">{t('settingsProfileSaved')}</p>}
+              {saveStatus === "error" && (
+                <p className="text-sm text-red-500 font-medium px-1">
+                  {saveError ?? t('settingsSaveFailed')}
+                </p>
+              )}
             </div>
           </div>
 
@@ -329,7 +575,7 @@ export default function Settings() {
               <div className="rounded-3xl bg-card border border-border p-8">
                 <h2 className="text-xl font-bold mb-6">{t('livePreview')}</h2>
                 <div className="rounded-2xl border border-border-strong overflow-hidden bg-background">
-                  <ProfilePreview {...form} />
+                  <ProfilePreview {...preview} />
                 </div>
               </div>
             </div>
@@ -342,7 +588,7 @@ export default function Settings() {
                 {t('livePreview')}
               </h2>
               <div className="rounded-2xl border border-border-strong overflow-hidden bg-background">
-                <ProfilePreview {...form} />
+                <ProfilePreview {...preview} />
               </div>
             </div>
           )}
@@ -354,10 +600,10 @@ export default function Settings() {
         <div className="flex gap-3">
           <button
             onClick={handleSave}
-            disabled={isSaving}
+            disabled={isSaving || !canSave}
             className="flex-1 px-4 py-3 bg-indigo-500 text-white font-bold rounded-xl active:scale-95 transition disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed"
           >
-            {isSaving ? "Saving..." : t('saveChanges')}
+            {isSaving ? t('settingsSaving') : t('saveChanges')}
           </button>
           <button
             onClick={() => setShowPreview(!showPreview)}
@@ -366,8 +612,12 @@ export default function Settings() {
             {showPreview ? t('hide') : t('show')} {t('preview')}
           </button>
         </div>
-        {saveStatus === "success" && <p className="text-sm text-green-500 font-medium text-center">Saved!</p>}
-        {saveStatus === "error" && <p className="text-sm text-red-500 font-medium text-center">Failed to save</p>}
+        {saveStatus === "success" && <p className="text-sm text-green-500 font-medium text-center">{t('settingsProfileSaved')}</p>}
+        {saveStatus === "error" && (
+          <p className="text-sm text-red-500 font-medium text-center">
+            {saveError ?? t('settingsSaveFailed')}
+          </p>
+        )}
       </div>
     </div>
   );

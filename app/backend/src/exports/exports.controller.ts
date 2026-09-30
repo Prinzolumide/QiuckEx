@@ -78,6 +78,11 @@ export class ExportsController {
     status: 400,
     description: 'Invalid request parameters',
   })
+  @ApiResponse({
+    status: 400,
+    description:
+      'deliveryMethod is "webhook" but the caller has no enabled webhook target with a valid https URL (code EXPORT_WEBHOOK_TARGET_MISSING)',
+  })
   async requestExport(@Body() dto: RequestExportDto): Promise<{ jobId: string; message: string }> {
     return this.exportsService.requestExport(dto);
   }

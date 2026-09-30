@@ -44,7 +44,7 @@ Next.js 15 app. Base URL via `NEXT_PUBLIC_QUICKEX_API_URL` (`src/lib/api.ts`), d
 | Notification center | `src/app/notifications`, `src/components/NotificationCenterProvider.tsx` | **Partial** | UI is real but state is localStorage-only; not fed by the backend `notifications` module. |
 | Webhook management | `src/app/webhooks` → backend `notifications` | **Live** | Full webhook CRUD/logs/redeliver/signature-verify family. |
 | Developer settings (API keys) | `src/app/settings/developer` → backend `api-keys` | **Live** | Key CRUD, usage, rotate. |
-| Profile settings | `src/app/settings` | **Mocked** | Save is a `// TODO: Call API to save profile`; nothing persists to the backend. |
+| Profile settings | `src/app/settings`  backend `usernames` | **Live** | Real `GET /profile?username=&publicKey=` and `PUT /profile`; ownership verified server-side. Backend has no wallet auth yet, so the wallet key travels in the request. |
 | Team management | `src/app/settings/teams` | **Mocked** | In-memory member list and a hardcoded "admin" role; no backend module exists for teams. |
 | Admin — system health | `src/components/admin/SystemHealth.tsx` → backend `health` | **Live** | `GET /health`. |
 | Admin — feature flags & audit logs | `src/components/admin/*` → backend `feature-flags`, `audit` | **Partial** | Endpoints are real but called with **no auth header**, and the backend controllers are unguarded (mismatch #7 — known security gap). |
@@ -134,7 +134,7 @@ A separate env-var rollback guard exists at `app/backend/flags.js` (`FEATURE_<NA
 6. **Mobile escrow registry sync** — 404s today due to the `/api` path prefix (mismatch #1). Fix the path before building on it.
 7. **`admin/feature-flags` and `admin/audit`** — unguarded endpoints; adding guards must land together with auth-header changes in the frontend admin pages (mismatch #7).
 8. **Mainnet anything on-chain** — the contract is not deployed to mainnet and all `mainnet.*` flags default to disabled. Treat all on-chain flows as testnet-only.
-9. **Frontend discovery / profile settings / teams pages** — pure scaffolding on mock or in-memory data.
+9. **Frontend discovery / teams pages** — pure scaffolding on mock or in-memory data. (Profile settings is now live; see above.)
 10. **Everything in `.kiro/specs/`** — requirements documents, not shipped behavior.
 
 ## How to use this map

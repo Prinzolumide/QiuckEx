@@ -96,9 +96,14 @@ jobs:
         working-directory: ./app/frontend
         run: npx tsc --noEmit
 
+      # #1149: `npm test` is the real suite (`vitest run`). It used to be
+      # `npm test || npx vitest run` against a no-op `test` script, so the
+      # `||` always short-circuited on success and the suite never ran. Do not
+      # reintroduce a fallback here: a non-zero exit from the suite must fail
+      # this job, not be retried by a second command.
       - name: Run Unit Tests
         working-directory: ./app/frontend
-        run: npm test || npx vitest run
+        run: npm test
 
       # #766: automated axe-core a11y audit of the QR/payment components
       # (generator, pay page, payment states, QR preview). Run as its own
