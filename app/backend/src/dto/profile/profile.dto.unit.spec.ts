@@ -215,12 +215,13 @@ describe("Profile DTOs", () => {
       });
       await validate(dto);
       // Omitted fields should remain undefined so the service leaves them unchanged
-      expect(dto.bio).toBeUndefined();
-      expect(dto.avatarUrl).toBeUndefined();
-      expect(dto.primaryColor).toBeUndefined();
-      expect(dto.twitterHandle).toBeUndefined();
-      expect(dto.discordHandle).toBeUndefined();
-      expect(dto.githubHandle).toBeUndefined();
+      // Note: plainToInstance only copies own properties from the source object
+      expect(Object.prototype.hasOwnProperty.call(dto, "bio")).toBe(false);
+      expect(Object.prototype.hasOwnProperty.call(dto, "avatarUrl")).toBe(false);
+      expect(Object.prototype.hasOwnProperty.call(dto, "primaryColor")).toBe(false);
+      expect(Object.prototype.hasOwnProperty.call(dto, "twitterHandle")).toBe(false);
+      expect(Object.prototype.hasOwnProperty.call(dto, "discordHandle")).toBe(false);
+      expect(Object.prototype.hasOwnProperty.call(dto, "githubHandle")).toBe(false);
     });
   });
 

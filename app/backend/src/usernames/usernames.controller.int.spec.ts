@@ -32,6 +32,7 @@ describe('UsernamesController', () => {
 
     seed = store.rows;
     validPublicKey = seed('users')[0].public_key as string;
+    jest.clearAllMocks();
 
     const mockCreate = jest.fn().mockResolvedValue({ ok: true });
     const mockListByPublicKey = jest.fn().mockResolvedValue([]);
