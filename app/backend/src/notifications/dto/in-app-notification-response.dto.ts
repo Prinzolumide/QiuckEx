@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { InAppNotification } from "../entities/in-app-notification.entity";
+import { NotificationEventType } from "../types/notification.types";
 
 export class InAppNotificationResponseDto implements InAppNotification {
   @ApiProperty({ example: "2d2ef5a1-87f7-42f8-9b6c-85f5b5ec7d19" })
@@ -8,8 +9,8 @@ export class InAppNotificationResponseDto implements InAppNotification {
   @ApiProperty({ example: "GTEST123..." })
   publicKey!: string;
 
-  @ApiProperty({ enum: ["payment_received", "username_claimed", "bid_placed", "bid_accepted", "listing_created"] })
-  eventType!: "payment_received" | "username_claimed" | "bid_placed" | "bid_accepted" | "listing_created";
+  @ApiProperty({ enum: NotificationEventType })
+  eventType!: NotificationEventType;
 
   @ApiProperty({ example: "evt_123" })
   eventId!: string;
