@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
-import { describe, it, expect, vi, beforeEach, Mock } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import Settings from "./page";
 import { fetchWithAuth } from "@/lib/api";
 import { useWallet } from "@/hooks/useWallet";
@@ -28,7 +28,7 @@ vi.mock("react-i18next", () => ({
 }));
 
 function mockWallet(publicKey: string | null) {
-  (useWallet as Mock).mockReturnValue({
+  (useWallet as any).mockReturnValue({
     wallet: { connected: Boolean(publicKey), publicKey, network: "testnet" },
     isRestoring: false,
   });
@@ -36,7 +36,7 @@ function mockWallet(publicKey: string | null) {
 
 /** Resolve `GET /username?publicKey=...` (step 1 of the load sequence). */
 function mockOwnedUsernames(usernames: string[]) {
-  (fetchWithAuth as Mock).mockResolvedValueOnce({
+  (fetchWithAuth as any).mockResolvedValueOnce({
     ok: true,
     json: async () => ({
       usernames: usernames.map((username, index) => ({
@@ -50,14 +50,14 @@ function mockOwnedUsernames(usernames: string[]) {
 
 /** Resolve `GET /profile?username=...` (step 2). */
 function mockProfile(profile: Record<string, unknown>) {
-  (fetchWithAuth as Mock).mockResolvedValueOnce({
+  (fetchWithAuth as any).mockResolvedValueOnce({
     ok: true,
     json: async () => profile,
   });
 }
 
 function mockFailure(body: unknown) {
-  (fetchWithAuth as Mock).mockResolvedValueOnce({
+  (fetchWithAuth as any).mockResolvedValueOnce({
     ok: false,
     status: 400,
     json: async () => body,
@@ -171,7 +171,7 @@ describe("Settings Page", () => {
   it("surfaces the backend's message instead of a generic error when the save fails", async () => {
     mockOwnedUsernames(["first_name"]);
     mockProfile({ username: "first_name" });
-    (fetchWithAuth as Mock).mockResolvedValueOnce({
+    (fetchWithAuth as any).mockResolvedValueOnce({
       ok: false,
       status: 400,
       json: async () => ({
@@ -203,7 +203,7 @@ describe("Settings Page", () => {
   it("sends the owning public key and the selected username with the save", async () => {
     mockOwnedUsernames(["first_name"]);
     mockProfile({ username: "first_name", bio: "old bio" });
-    (fetchWithAuth as Mock).mockResolvedValue({ ok: true, json: async () => ({}) });
+    (fetchWithAuth as any).mockResolvedValue({ ok: true, json: async () => ({}) });
 
     render(<Settings />);
 
@@ -223,7 +223,7 @@ describe("Settings Page", () => {
       );
     });
 
-    const putCall = (fetchWithAuth as Mock).mock.calls.find(
+    const putCall = (fetchWithAuth as any).mock.calls.find(
       ([, init]: [string, RequestInit | undefined]) => init?.method === "PUT",
     );
     const body = JSON.parse((putCall?.[1] as RequestInit).body as string);
