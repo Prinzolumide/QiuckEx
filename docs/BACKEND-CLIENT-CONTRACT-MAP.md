@@ -4,7 +4,7 @@ This document maps the backend HTTP endpoints actually consumed by the **fronten
 
 Scope: REST contracts between clients and the NestJS backend. On-chain/Soroban event schemas are covered separately in `app/backend/doc/EVENTS.md` and `app/contract/docs/events-schema.md`.
 
-> **Important:** the backend registers **no global route prefix** (`app/backend/src/main.ts` never calls `setGlobalPrefix`). Controller prefixes are the full public paths. Anything a client prepends (like `/api`) is a bug — see [Known mismatches](#known-mismatches--payload-drift).
+> **Important:** the backend registers **no global route prefix** (`app/backend/src/main.ts` never calls `setGlobalPrefix`). Controller prefixes are the full public paths. Anything a client prepends (like `/api`) is a bug — see [Known mismatches](#known-mismatches--payload-drift). The prefix convention and its enforced exemption list are in [Routing Conventions](./ROUTING-CONVENTIONS.md).
 
 ## Base URL configuration
 
@@ -59,11 +59,11 @@ Auth conventions:
 
 Explicitly tracked so contributors don't re-discover them:
 
-1. **Mobile contract registry path is wrong** — `app/mobile/services/contract-registry.ts` calls `/api/contracts/registry`; the backend route is `/contracts/registry` (no global `api` prefix exists). This breaks Escrow registry sync on the payment-confirmation screen. Fix: drop the `/api` prefix (and consider adopting `If-None-Match`/ETag, which the backend already supports).
+1. ~~**Mobile contract registry path is wrong**~~ — **Resolved.** `app/mobile/services/contract-registry.ts` calls `/contracts/registry`, the canonical route (no global `api` prefix exists — see [Routing Conventions](./ROUTING-CONVENTIONS.md)). The backend also keeps `api/contracts`, `mobile/contracts`, and `api/mobile/contracts` as frozen compatibility aliases for builds already shipped against them. Follow-up still open: adopt `If-None-Match`/ETag, which the backend already supports.
 2. **Mobile `GET /session/bootstrap`** — client is wired (`services/session-bootstrap.ts`), backend route does not exist. Either implement the backend controller or feature-gate the client call.
 3. **Mobile `POST /feedback`** — no backend controller; the client's export fallback masks this, but every submit silently "fails" to the export path when a backend is configured.
 4. **Base-URL drift** — mobile services default to `http://localhost:3000` (frontend's port) while the backend and frontend default to `:4000`; `payment-confirmation.tsx` falls back to `api.quickex.com` while the frontend production config uses `api.quickex.to`. Local mobile dev against a local backend requires `EXPO_PUBLIC_API_URL` to be set explicitly.
-5. **Prefix inconsistency** — `v1/receipts` is the only versioned controller; `api/environment-parity` is the only `api/`-prefixed one; everything else is unprefixed. Treat these as historical accidents, not conventions to copy.
+5. **Prefix inconsistency** — **Resolved as a rule; grandfathered in place.** The convention is now written down and enforced ([Routing Conventions](./ROUTING-CONVENTIONS.md); `pnpm check:routes` plus `src/routing/route-conventions.unit.spec.ts` over every `*.controller.ts`): canonical prefixes are unprefixed resource paths, new `api/`/`mobile/`/`v1/` prefixes are rejected, and `api/environment-parity` was normalized to `environment-parity`. The remaining `v1/*` and `api/*` routes are a closed, documented exemption set — do not copy them, and do not add to the set.
 6. **Two controllers share the `links` prefix** — `links.controller.ts` (metadata) and `scam-alerts.controller.ts` both mount `@Controller("links")`. Route collisions are possible when adding new `links/*` subroutes; check both files.
 7. **`admin/feature-flags` and `admin/audit` are unguarded** — unlike every other `admin/*` controller, `feature-flags.controller.ts` and `audit.controller.ts` have **no `ApiKeyGuard`/`RequireScopes`** (the audit controller even carries a `// In a real app, this route would be protected by an AdminGuard` comment). The frontend admin pages (`FeatureFlags.tsx`, `AuditLogs.tsx`) accordingly call them with no auth header. This is a known security gap: when guards are added, those two frontend pages must add key handling in the same change.
 8. **Notification list response shape is loose** — mobile handles both a raw array and a Supabase-style envelope from `/notifications/in-app`. Pin the backend DTO before removing the client's defensive unwrapping.
@@ -79,6 +79,17 @@ Explicitly tracked so contributors don't re-discover them:
 
 Useful when picking issues — these are "wire the client" opportunities, not new backend work:
 
+| Endpoint family | Backend module | Docs |
+|---|---|---|
+| `GET /username/search`, `/trending`, `/recently-active`, `/featured`, `POST /username/toggle-public` | `usernames` | `app/backend/docs/API-REFERENCE-PUBLIC-PROFILES.md` |
+| `links/recurring/*` | `links` (`recurring-payments.controller.ts`) | `app/backend/docs/RECURRING-PAYMENTS.md` |
+| `GET /v1/receipts/tx/:txHash`, `GET /v1/receipts/address/:address` | `receipts` | — (mobile ReceiptScreen builds a web URL instead) |
+| `GET /payments/recent` | `payments` | — |
+| `POST /stellar/quote`, `GET /stellar/quote/:quoteId`, `POST /stellar/path-preview/strict-send` | `stellar` | — |
+| `GET /analytics/time-series`, `GET /analytics/assets` | `analytics` | `app/backend/docs/ANALYTICS-API.md` (frontend uses only `report`/`export`) |
+| `notifications/preferences/*` | `notifications` | — |
+| `admin/refunds`, `admin/rc-validation`, `admin/operations`, `admin/notification-templates`, `admin/support/bundle` | respective modules | operator-facing, admin key required |
+| `transaction-timeline`, `privacy`, `reconciliation`, `telegram`, `metrics`, `developer/testnet`, `environment-parity` | respective modules | server-side only today |
 || Endpoint family | Backend module | Docs |
 ||---|---|---|
 || `GET /username/search`, `/trending`, `/recently-active`, `/featured`, `POST /username/toggle-public` | `usernames` | `app/backend/docs/API-REFERENCE-PUBLIC-PROFILES.md` |
