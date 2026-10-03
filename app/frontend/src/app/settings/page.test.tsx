@@ -20,12 +20,18 @@ vi.mock("@/hooks/useWallet", () => ({
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    // Interpolate `{{username}}` so the selected username is observable. The
-    // page has no username input — the username is a locator passed to the API,
-    // and the only place it is rendered is the page description.
     t: (key: string, opts?: Record<string, unknown>) =>
       opts && "username" in opts ? `${key}:${String(opts.username)}` : key,
   }),
+  initReactI18next: {
+    type: "3rdParty",
+    init: vi.fn(),
+  },
+}));
+
+// Mock LocaleSwitcher to avoid i18n initialization issues
+vi.mock("@/components/LocaleSwitcher", () => ({
+  LocaleSwitcher: () => <select data-testid="locale-switcher" />,
 }));
 
 function mockWallet(publicKey: string | null) {
