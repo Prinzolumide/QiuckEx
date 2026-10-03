@@ -153,7 +153,7 @@ export default function Settings() {
     return () => {
       cancelled = true;
     };
-  }, [publicKey, isRestoring]);
+  }, [publicKey, isRestoring, t]);
 
   /**
    * Step 2: load the selected profile's current values.
@@ -205,7 +205,7 @@ export default function Settings() {
     return () => {
       cancelled = true;
     };
-  }, [publicKey, selectedUsername]);
+  }, [publicKey, selectedUsername, t]);
 
   // Switching profiles must not carry the previous profile's values over.
   const selectUsername = useCallback((username: string) => {
