@@ -12,9 +12,24 @@ const mockReceipt = {
   amount: '100.00',
   asset: 'USDC',
   sender: 'GABCDEF...123456',
+  recipient: 'GRECIPIENT...789012',
   timestamp: '2026-06-25 14:30',
   status: 'success' as const,
   memo: 'Test payment',
+  metadata: {
+    receiptHash: 'abc123def456',
+  },
+  contract: {
+    contractId: 'CBUILD...CONTRACT',
+  },
+  network: {
+    network: 'testnet',
+    ledger: 12345678,
+    ledgerCloseTime: '2026-06-25T14:30:00Z',
+  },
+  timeline: [
+    { status: 'completed', title: 'Payment received', timestamp: '2026-06-25 14:30' },
+  ],
 };
 
 async function renderWithTheme(component: React.ReactElement, mode: 'light' | 'dark' | 'system', systemAppearance: 'light' | 'dark' = 'light') {
