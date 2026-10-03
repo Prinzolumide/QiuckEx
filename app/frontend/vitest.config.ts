@@ -13,6 +13,15 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     setupFiles: ['./src/test/setup.ts'],
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        singleFork: true,
+      },
+    },
+    minWorkers: 1,
+    maxWorkers: 1,
+    isolate: true,
   },
   resolve: {
     alias: {
