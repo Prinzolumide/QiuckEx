@@ -434,7 +434,9 @@ export class UsernamesController {
   @ApiOperation({
     summary: "Get profile by username",
     description: "Returns profile details for a given username. " +
-      "If the profile is private, returns a privacy-aware response.",
+      "If the profile is private, returns a privacy-aware response. " +
+      "Public profiles include the owner's presentation fields (colour, avatar, " +
+      "bio and social handles) so the profile card can be rendered.",
   })
   @ApiResponse({
     status: 200,
@@ -448,21 +450,24 @@ export class UsernamesController {
     @Param("username") username: string,
   ) {
     try {
-      const profile = await this.usernamesService.getProfileByUsername(username);
-      if (!profile.is_public) {
-        return {
-          username: profile.username,
-          isPublic: false,
-        };
+      const publicProfile = await this.usernamesService.getPublicProfile(username);
+      if (!publicProfile) {
+        // Distinguish "not found" from "private" by checking existence
+        // without the visibility filter.
+        const exists = await this.usernamesService.getProfileByUsername(username);
+        if (!exists.is_public) {
+          return {
+            username: exists.username,
+            isPublic: false,
+          };
+        }
+        // Should not happen: getPublicProfile returned null but profile is public
+        throw new NotFoundException({
+          code: UsernameErrorCode.NOT_FOUND,
+          message: "Username not found",
+        });
       }
-      return {
-        id: profile.id,
-        username: profile.username,
-        publicKey: profile.public_key,
-        isPublic: true,
-        lastActiveAt: profile.last_active_at || profile.created_at,
-        createdAt: profile.created_at,
-      };
+      return publicProfile;
     } catch (err) {
       if (err instanceof UsernameValidationError) {
         if (err.code === UsernameErrorCode.NOT_FOUND) {

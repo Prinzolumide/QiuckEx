@@ -156,11 +156,11 @@ export function PaymentScreen() {
             accessibilityState={{ checked: xrayEnabled }}
             accessibilityHint="Double-tap to toggle privacy shield for transaction details"
             trackColor={{
-              false: color(tokens.border.default),
+              false: color(tokens.border),
               true: color(tokens.action.primary),
             }}
             thumbColor={color(tokens.surface)}
-            ios_backgroundColor={color(tokens.border.default)}
+            ios_backgroundColor={color(tokens.border)}
           />
         </View>
 
@@ -213,12 +213,12 @@ function themedStyles({ color, isDark, tokens }: {
     headerTitle: {
       fontSize: 28,
       fontWeight: '700',
-      color: color(tokens.text.primary),
+      color: color(tokens.textPrimary),
       marginBottom: 4,
     },
     headerSubtitle: {
       fontSize: 16,
-      color: color(tokens.text.secondary),
+      color: color(tokens.textSecondary),
     },
     inputGroup: {
       marginBottom: 20,
@@ -226,7 +226,7 @@ function themedStyles({ color, isDark, tokens }: {
     label: {
       fontSize: 14,
       fontWeight: '600',
-      color: color(tokens.text.secondary),
+      color: color(tokens.textSecondary),
       marginBottom: 8,
       textTransform: 'uppercase',
       letterSpacing: 0.5,
@@ -247,7 +247,7 @@ function themedStyles({ color, isDark, tokens }: {
       borderRadius: 12,
       backgroundColor: color(tokens.input.background),
       borderWidth: 1,
-      borderColor: color(tokens.border.default),
+      borderColor: color(tokens.border),
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -258,7 +258,7 @@ function themedStyles({ color, isDark, tokens }: {
     assetText: {
       fontSize: 16,
       fontWeight: '600',
-      color: color(tokens.text.secondary),
+      color: color(tokens.textSecondary),
     },
     assetTextActive: {
       color: color(tokens.action.primary),
@@ -266,7 +266,7 @@ function themedStyles({ color, isDark, tokens }: {
     amountInput: {
       fontSize: 48,
       fontWeight: '700',
-      color: color(tokens.text.primary),
+      color: color(tokens.textPrimary),
       textAlign: 'center',
       paddingVertical: 16,
       minHeight: 80,
@@ -277,7 +277,7 @@ function themedStyles({ color, isDark, tokens }: {
     },
     memoInput: {
       fontSize: 16,
-      color: color(tokens.text.primary),
+      color: color(tokens.textPrimary),
       backgroundColor: color(tokens.input.background),
       borderRadius: 16,
       borderWidth: 1,
@@ -295,17 +295,17 @@ function themedStyles({ color, isDark, tokens }: {
       borderRadius: 16,
       marginBottom: 20,
       borderWidth: 1,
-      borderColor: color(tokens.border.subtle),
+      borderColor: color(tokens.borderLight),
     },
     privacyTitle: {
       fontSize: 16,
       fontWeight: '600',
-      color: color(tokens.text.primary),
+      color: color(tokens.textPrimary),
       marginBottom: 2,
     },
     privacyDesc: {
       fontSize: 13,
-      color: color(tokens.text.tertiary),
+      color: color(tokens.textMuted),
     },
     generateButton: {
       backgroundColor: color(tokens.action.primary),
@@ -324,12 +324,12 @@ function themedStyles({ color, isDark, tokens }: {
     generateButtonText: {
       fontSize: 18,
       fontWeight: '700',
-      color: color(tokens.text.inverse),
+      color: color(tokens.textInverse),
     },
     footerText: {
       textAlign: 'center',
       fontSize: 13,
-      color: color(tokens.text.tertiary),
+      color: color(tokens.textMuted),
     },
   });
 }

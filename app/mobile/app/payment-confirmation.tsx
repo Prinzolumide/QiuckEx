@@ -1,7 +1,7 @@
 import * as Linking from "expo-linking";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
-import { Alert, Pressable, StyleSheet, Text, View, ScrollView } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View, ScrollView , ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useSecurity } from "@/hooks/use-security";
@@ -14,7 +14,7 @@ import { useNetworkStatus } from "@/hooks/use-network-status";
 import { saveContact } from "../services/contacts";
 import { v4 as uuidv4 } from "uuid";
 
-import { ActivityIndicator } from "react-native";
+
 import { useContractRegistry } from "../hooks/useContractRegistry";
 import { ErrorState } from "@/components/resilience/error-state";
 import { useSession } from "../contexts/SessionContext";

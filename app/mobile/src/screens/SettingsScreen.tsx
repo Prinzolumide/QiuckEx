@@ -158,26 +158,26 @@ function ToggleRow({
       accessibilityRole="none"
     >
       <View style={toggleStyles.text} accessibilityElementsHidden={true} importantForAccessibility="no">
-        <Text style={[toggleStyles.label, { color: color(tokens.text.primary) }]}>
-          {label}
-        </Text>
-        <Text style={[toggleStyles.desc, { color: color(tokens.text.tertiary) }]}>
-          {description}
-        </Text>
-      </View>
-      <Switch
-        value={value}
-        onValueChange={onValueChange}
-        trackColor={{
-          false: color(tokens.border.default),
-          true: color(tokens.action.primary),
-        }}
-        thumbColor={color(tokens.surface)}
-        ios_backgroundColor={color(tokens.border.default)}
-        accessibilityLabel={`${label} toggle, currently ${value ? 'on' : 'off'}`}
-        accessibilityRole="switch"
-        accessibilityState={{ checked: value }}
-      />
+<Text style={[toggleStyles.label, { color: color(tokens.textPrimary) }]}>
+        {label}
+      </Text>
+      <Text style={[toggleStyles.desc, { color: color(tokens.textMuted) }]}>
+        {description}
+      </Text>
+    </View>
+    <Switch
+      value={value}
+      onValueChange={onValueChange}
+      trackColor={{
+        false: color(tokens.border),
+        true: color(tokens.action.primary),
+      }}
+      thumbColor={color(tokens.surface)}
+      ios_backgroundColor={color(tokens.border)}
+      accessibilityLabel={`${label} toggle, currently ${value ? 'on' : 'off'}`}
+      accessibilityRole="switch"
+      accessibilityState={{ checked: value }}
+    />
     </View>
   );
 }
@@ -215,7 +215,7 @@ function ActionRow({ label, value }: { label: string; value: string }) {
       accessibilityHint={`Double-tap to open ${label} details`}
     >
       <Text
-        style={[actionStyles.label, { color: color(tokens.text.primary) }]}
+        style={[actionStyles.label, { color: color(tokens.textPrimary) }]}
         accessibilityElementsHidden={true}
         importantForAccessibility="no"
       >
@@ -223,12 +223,12 @@ function ActionRow({ label, value }: { label: string; value: string }) {
       </Text>
       <View style={actionStyles.right} accessibilityElementsHidden={true} importantForAccessibility="no">
         <Text
-          style={[actionStyles.value, { color: color(tokens.text.secondary) }]}
+          style={[actionStyles.value, { color: color(tokens.textSecondary) }]}
           numberOfLines={1}
         >
           {value}
         </Text>
-        <Text style={[actionStyles.chevron, { color: color(tokens.text.tertiary) }]}>
+        <Text style={[actionStyles.chevron, { color: color(tokens.textMuted) }]}>
           ›
         </Text>
       </View>
@@ -264,7 +264,7 @@ const actionStyles = StyleSheet.create({
 });
 
 function themedStyles({ color, isDark, tokens }: {
-  color: (t: any) => string;
+  color: (t: string) => string;
   isDark: boolean;
   tokens: typeof themeTokens;
 }) {
@@ -280,7 +280,7 @@ function themedStyles({ color, isDark, tokens }: {
     sectionTitle: {
       fontSize: 13,
       fontWeight: '700',
-      color: color(tokens.text.secondary),
+      color: color(tokens.textSecondary),
       textTransform: 'uppercase',
       letterSpacing: 1,
       marginBottom: 12,
@@ -297,7 +297,7 @@ function themedStyles({ color, isDark, tokens }: {
       borderRadius: 16,
       backgroundColor: color(tokens.surfaceElevated),
       borderWidth: 2,
-      borderColor: color(tokens.border.subtle),
+      borderColor: color(tokens.borderLight),
     },
     themeOptionActive: {
       borderColor: color(tokens.action.primary),
@@ -310,7 +310,7 @@ function themedStyles({ color, isDark, tokens }: {
     themeLabel: {
       fontSize: 14,
       fontWeight: '600',
-      color: color(tokens.text.secondary),
+      color: color(tokens.textSecondary),
     },
     themeLabelActive: {
       color: color(tokens.action.primary),
@@ -327,13 +327,13 @@ function themedStyles({ color, isDark, tokens }: {
       justifyContent: 'center',
     },
     checkmarkText: {
-      color: color(tokens.text.inverse),
+      color: color(tokens.textInverse),
       fontSize: 12,
       fontWeight: '700',
     },
     divider: {
       height: 1,
-      backgroundColor: color(tokens.border.subtle),
+      backgroundColor: color(tokens.borderLight),
     },
     dangerSection: {
       marginTop: 32,
@@ -350,14 +350,14 @@ function themedStyles({ color, isDark, tokens }: {
     dangerText: {
       fontSize: 16,
       fontWeight: '600',
-      color: color(tokens.semantic.error),
+      color: color(tokens.status.error),
     },
     version: {
       textAlign: 'center',
       marginTop: 24,
       marginBottom: 40,
       fontSize: 13,
-      color: color(tokens.text.tertiary),
+      color: color(tokens.textMuted),
     },
   });
 }

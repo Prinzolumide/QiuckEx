@@ -15,6 +15,7 @@ import {
   type TrendingCreatorResult,
   type UsernameRow,
 } from './usernames.repository';
+import { UsernameErrorCode, UsernameValidationError } from './errors';
 
 describe('UsernamesController', () => {
   let controller: UsernamesController;
@@ -31,6 +32,7 @@ describe('UsernamesController', () => {
 
     seed = store.rows;
     validPublicKey = seed('users')[0].public_key as string;
+    jest.clearAllMocks();
 
     const mockCreate = jest.fn().mockResolvedValue({ ok: true });
     const mockListByPublicKey = jest.fn().mockResolvedValue([]);
@@ -50,6 +52,8 @@ describe('UsernamesController', () => {
             getTrendingCreators: mockGetTrendingCreators,
             getRecentlyActiveUsers: mockGetRecentlyActiveUsers,
             getFeaturedCreators: mockGetFeaturedCreators,
+            getPublicProfile: jest.fn(),
+            getProfileByUsername: jest.fn(),
           },
         },
         {
@@ -205,6 +209,68 @@ describe('UsernamesController', () => {
         })),
       );
       expect(result.has_more).toBe(false);
+    });
+  });
+
+  describe('getProfile (public profile)', () => {
+    const validProfile = {
+      id: 'id-1',
+      username: 'alice_123',
+      public_key: 'GBXGQ55JMQ4L2B6E7S8Y9Z0A1B2C3D4E5F6G7H8I7YWR1234567890AB',
+      is_public: true,
+      created_at: '2025-01-01T00:00:00.000Z',
+      last_active_at: '2025-01-01T00:00:00.000Z',
+      primary_color: '#6366f1',
+      avatar_url: 'https://cdn.example.com/avatar.png',
+      bio: 'Building payments',
+      twitter_handle: 'stellarorg',
+      discord_handle: 'user#1234',
+      github_handle: 'stellar',
+    };
+
+    it('returns full camelCase profile for public profile', async () => {
+      usernamesService.getPublicProfile.mockResolvedValueOnce(validProfile);
+
+      const result = await controller.getProfile('alice_123');
+
+      expect(result).toEqual(validProfile);
+      expect(usernamesService.getPublicProfile).toHaveBeenCalledWith('alice_123');
+    });
+
+    it('returns trimmed shape { username, isPublic: false } for private profile', async () => {
+      usernamesService.getPublicProfile.mockResolvedValueOnce(null);
+      usernamesService.getProfileByUsername.mockResolvedValueOnce({
+        id: 'id-2',
+        username: 'private_user',
+        public_key: 'GBXGQ55JMQ4L2B6E7S8Y9Z0A1B2C3D4E5F6G7H8I7AAA',
+        created_at: '2025-01-01T00:00:00.000Z',
+        is_public: false,
+        last_active_at: null,
+      });
+
+      const result = await controller.getProfile('private_user');
+
+      expect(result).toEqual({
+        username: 'private_user',
+        isPublic: false,
+      });
+      expect(usernamesService.getPublicProfile).toHaveBeenCalledWith('private_user');
+      expect(usernamesService.getProfileByUsername).toHaveBeenCalledWith('private_user');
+    });
+
+    it('throws NotFoundException for non-existent username', async () => {
+      usernamesService.getPublicProfile.mockResolvedValueOnce(null);
+      usernamesService.getProfileByUsername.mockRejectedValueOnce(
+        new UsernameValidationError(UsernameErrorCode.NOT_FOUND, 'Username not found', 'username'),
+      );
+
+      const err = await controller.getProfile('nonexistent').catch((e) => e);
+
+      expect(err).toBeInstanceOf(Error);
+      expect(err.response).toMatchObject({
+        code: UsernameErrorCode.NOT_FOUND,
+        message: 'Username not found',
+      });
     });
   });
 });

@@ -85,7 +85,7 @@ describe('RecurringPaymentsScheduler', () => {
       enqueue: jest.fn().mockResolvedValue('job-1'),
     };
 
-    const mockUsernamesService = {
+    const mockUsernamesService: jest.Mocked<Pick<UsernamesService, 'getPublicProfile'>> = {
       getPublicProfile: jest.fn(),
     };
 

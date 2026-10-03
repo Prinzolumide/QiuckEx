@@ -56,12 +56,12 @@ type ApiReport = {
     totalVolumeUsd: number;
     averageTransactionUsd: number;
   };
-  assetDistribution: Array<{
+  assetDistribution: {
     asset: string;
     volumeUsd: number;
     percentage: number;
     transactionCount: number;
-  }>;
+  }[];
   timeSeries: ApiTimeSeriesItem[];
 };
 
@@ -264,7 +264,7 @@ export async function exportAnalyticsReport(
 
   // Create a temporary file
   const fileName = `quickex-analytics-report.${format}`;
-  const fileUri = FileSystem.cacheDirectory + fileName;
+  const fileUri = new FileSystem.File(FileSystem.Paths.cache, fileName).uri;
   
   await FileSystem.writeAsStringAsync(fileUri, fileContent, {
     encoding: format === "csv" ? "utf8" : "base64",

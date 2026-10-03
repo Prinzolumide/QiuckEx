@@ -33,11 +33,11 @@ import {
   STELLAR_NETWORK,
 } from "../src/config/build";
 
-const FREQUENCY_OPTIONS: Array<{
+const FREQUENCY_OPTIONS: {
   value: SyncFrequency;
   label: string;
   helper: string;
-}> = [
+}[] = [
   {
     value: "battery-saver",
     label: "Battery Saver",

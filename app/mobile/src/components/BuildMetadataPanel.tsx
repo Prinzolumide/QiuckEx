@@ -52,7 +52,7 @@ function CopyableMetadataRow({ label, value }: CopyableMetadataRowProps) {
       accessibilityHint={`Double-tap to copy ${label} value to clipboard`}
       hitSlop={{ top: 4, left: 4, right: 4, bottom: 4 }}
     >
-      <Text style={[styles.label, { color: color(tokens.text.primary) }]} accessibilityElementsHidden={true} importantForAccessibility="no">
+      <Text style={[styles.label, { color: color(tokens.textPrimary) }]} accessibilityElementsHidden={true} importantForAccessibility="no">
         {label}
       </Text>
       <View style={styles.right} accessibilityElementsHidden={true} importantForAccessibility="no">
@@ -60,7 +60,7 @@ function CopyableMetadataRow({ label, value }: CopyableMetadataRowProps) {
           style={[
             styles.value,
             {
-              color: justCopied ? color(tokens.action.primary) : color(tokens.text.secondary),
+              color: justCopied ? color(tokens.action.primary) : color(tokens.textSecondary),
             },
           ]}
           numberOfLines={1}
@@ -71,7 +71,7 @@ function CopyableMetadataRow({ label, value }: CopyableMetadataRowProps) {
           style={[
             styles.copyIcon,
             {
-              color: justCopied ? color(tokens.action.primary) : color(tokens.text.tertiary),
+              color: justCopied ? color(tokens.action.primary) : color(tokens.textMuted),
             },
           ]}
         >
@@ -145,7 +145,7 @@ export function BuildMetadataPanel() {
         accessibilityRole="button"
         accessibilityHint="Double-tap to copy all build metadata at once for bug reports"
       >
-        <Text style={[styles.copyAllText, { color: color(tokens.text.inverse) }]} accessibilityElementsHidden={true} importantForAccessibility="no">
+        <Text style={[styles.copyAllText, { color: color(tokens.textInverse) }]} accessibilityElementsHidden={true} importantForAccessibility="no">
           Copy All Metadata
         </Text>
       </TouchableOpacity>
@@ -166,14 +166,14 @@ function getMetadataStyles({ color, tokens }: {
     sectionTitle: {
       fontSize: 13,
       fontWeight: '700',
-      color: color(tokens.text.secondary),
+      color: color(tokens.textSecondary),
       textTransform: 'uppercase',
       letterSpacing: 1,
       marginBottom: 8,
     },
     sectionDescription: {
       fontSize: 12,
-      color: color(tokens.text.tertiary),
+      color: color(tokens.textMuted),
       marginTop: 4,
     },
     metadataContainer: {
@@ -182,7 +182,7 @@ function getMetadataStyles({ color, tokens }: {
       backgroundColor: color(tokens.surfaceElevated),
       overflow: 'hidden',
       borderWidth: 1,
-      borderColor: color(tokens.border.subtle),
+      borderColor: color(tokens.borderLight),
     },
     row: {
       flexDirection: 'row',

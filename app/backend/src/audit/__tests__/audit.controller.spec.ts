@@ -1,5 +1,6 @@
 import { AuditController } from '../audit.controller';
 import { Reflector } from '@nestjs/core';
+import { Type } from '@nestjs/common';
 import { ApiKeyGuard } from '../../auth/guards/api-key.guard';
 import { REQUIRED_SCOPES_KEY } from '../../auth/decorators/require-scopes.decorator';
 
@@ -26,7 +27,7 @@ describe('AuditController', () => {
         const method = AuditController.prototype[methodName];
 
         // Check for ApiKeyGuard
-        const guards = reflector.getAllAndOverride<Class[]>('__guards__', [method, AuditController]);
+        const guards = reflector.getAllAndOverride<Type<unknown>[]>('__guards__', [method, AuditController]);
         expect(guards).toContain(ApiKeyGuard);
 
         // Check for RequireScopes('admin')
