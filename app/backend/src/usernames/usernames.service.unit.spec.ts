@@ -112,19 +112,19 @@ describe('UsernamesService', () => {
   describe('create', () => {
     it('creates username and returns ok', async () => {
       mockUsernamesRepository.claimUsernameWithOutbox.mockResolvedValueOnce(undefined);
-      const result = await service.create('alice_123', 'GBXGQ55JMQ4L2B6E7S8Y9Z0A1B2C3D4E5F6G7H8I7YWR');
+      const result = await service.create('alice_123', 'GBXGQ55JMQ4L2B6E7S8Y9Z0A1B2C3D4E5F6G7H8I7YWR1234567890AB');
       expect(result).toEqual({ ok: true });
       expect(mockUsernamesRepository.claimUsernameWithOutbox).toHaveBeenCalledWith(
         'alice_123',
-        'GBXGQ55JMQ4L2B6E7S8Y9Z0A1B2C3D4E5F6G7H8I7YWR',
+        'GBXGQ55JMQ4L2B6E7S8Y9Z0A1B2C3D4E5F6G7H8I7YWR1234567890AB',
         expect.any(String),
-        expect.objectContaining({ username: 'alice_123', publicKey: 'GBXGQ55JMQ4L2B6E7S8Y9Z0A1B2C3D4E5F6G7H8I7YWR' }),
+        expect.objectContaining({ username: 'alice_123', publicKey: 'GBXGQ55JMQ4L2B6E7S8Y9Z0A1B2C3D4E5F6G7H8I7YWR1234567890AB' }),
       );
     });
 
     it('normalizes username to lowercase before insert', async () => {
       mockUsernamesRepository.claimUsernameWithOutbox.mockResolvedValueOnce(undefined);
-      await service.create('Alice_99', 'GBXGQ55JMQ4L2B6E7S8Y9Z0A1B2C3D4E5F6G7H8I7YWR');
+      await service.create('Alice_99', 'GBXGQ55JMQ4L2B6E7S8Y9Z0A1B2C3D4E5F6G7H8I7YWR1234567890AB');
       expect(mockUsernamesRepository.claimUsernameWithOutbox).toHaveBeenCalledWith(
         'alice_99',
         expect.any(String),
@@ -139,7 +139,7 @@ describe('UsernamesService', () => {
       );
 
       await expect(
-        service.create('taken', 'GBXGQ55JMQ4L2B6E7S8Y9Z0A1B2C3D4E5F6G7H8I7YWR'),
+        service.create('taken', 'GBXGQ55JMQ4L2B6E7S8Y9Z0A1B2C3D4E5F6G7H8I7YWR1234567890AB'),
       ).rejects.toThrow(UsernameConflictError);
     });
 
@@ -148,7 +148,7 @@ describe('UsernamesService', () => {
         new UsernameConflictError('taken')
       );
       try {
-        await service.create('taken', 'GBXGQ55JMQ4L2B6E7S8Y9Z0A1B2C3D4E5F6G7H8I7YWR');
+        await service.create('taken', 'GBXGQ55JMQ4L2B6E7S8Y9Z0A1B2C3D4E5F6G7H8I7YWR1234567890AB');
       } catch (e) {
         expect(e).toBeInstanceOf(UsernameConflictError);
         expect((e as UsernameConflictError).username).toBe('taken');
@@ -158,7 +158,7 @@ describe('UsernamesService', () => {
 
     it('throws UsernameValidationError for invalid format', async () => {
       await expect(
-        service.create('ab', 'GBXGQ55JMQ4L2B6E7S8Y9Z0A1B2C3D4E5F6G7H8I7YWR'),
+        service.create('ab', 'GBXGQ55JMQ4L2B6E7S8Y9Z0A1B2C3D4E5F6G7H8I7YWR1234567890AB'),
       ).rejects.toThrow(UsernameValidationError);
     });
 
@@ -167,7 +167,7 @@ describe('UsernamesService', () => {
       mockUsernamesRepository.countUsernamesByPublicKey.mockResolvedValueOnce(2);
 
       await expect(
-        service.create('newuser', 'GBXGQ55JMQ4L2B6E7S8Y9Z0A1B2C3D4E5F6G7H8I7YWR'),
+        service.create('newuser', 'GBXGQ55JMQ4L2B6E7S8Y9Z0A1B2C3D4E5F6G7H8I7YWR1234567890AB'),
       ).rejects.toThrow(UsernameLimitExceededError);
     });
   });
@@ -178,14 +178,14 @@ describe('UsernamesService', () => {
         {
           id: 'id1',
           username: 'alice',
-          public_key: 'GBXGQ55JMQ4L2B6E7S8Y9Z0A1B2C3D4E5F6G7H8I7YWR',
+          public_key: 'GBXGQ55JMQ4L2B6E7S8Y9Z0A1B2C3D4E5F6G7H8I7YWR1234567890AB',
           created_at: '2025-01-01T00:00:00Z',
         },
       ];
       mockUsernamesRepository.listUsernamesByPublicKey.mockResolvedValueOnce(rows);
 
       const result = await service.listByPublicKey(
-        'GBXGQ55JMQ4L2B6E7S8Y9Z0A1B2C3D4E5F6G7H8I7YWR',
+        'GBXGQ55JMQ4L2B6E7S8Y9Z0A1B2C3D4E5F6G7H8I7YWR1234567890AB',
       );
       expect(result).toEqual(rows);
     });
@@ -311,7 +311,7 @@ expect(second.data.map((r) => r.id)).toEqual(first.data.map((r) => r.id));
   });
 
   describe('getOwnedProfile', () => {
-    const publicKey = 'GBXGQ55JMQ4L2B6E7S8Y9Z0A1B2C3D4E5F6G7H8I7YWR';
+    const publicKey = 'GBXGQ55JMQ4L2B6E7S8Y9Z0A1B2C3D4E5F6G7H8I7YWR1234567890AB';
     const profile = {
       id: 'id-1',
       username: 'alice_123',
@@ -358,7 +358,7 @@ expect(second.data.map((r) => r.id)).toEqual(first.data.map((r) => r.id));
   });
 
   describe('updateOwnedProfile', () => {
-    const publicKey = 'GBXGQ55JMQ4L2B6E7S8Y9Z0A1B2C3D4E5F6G7H8I7YWR';
+    const publicKey = 'GBXGQ55JMQ4L2B6E7S8Y9Z0A1B2C3D4E5F6G7H8I7YWR1234567890AB';
     const current = {
       id: 'id-1',
       username: 'alice_123',
@@ -453,11 +453,11 @@ expect(second.data.map((r) => r.id)).toEqual(first.data.map((r) => r.id));
     });
   });
 
-  describe('getPublicProfile', () => {
+  describe('getPublicProfileForDisplay', () => {
     const fullProfile = {
       id: 'id-1',
       username: 'alice_123',
-      public_key: 'GBXGQ55JMQ4L2B6E7S8Y9Z0A1B2C3D4E5F6G7H8I7YWR',
+      public_key: 'GBXGQ55JMQ4L2B6E7S8Y9Z0A1B2C3D4E5F6G7H8I7YWR1234567890AB',
       created_at: '2025-01-01T00:00:00.000Z',
       is_public: true,
       primary_color: '#6366f1',
@@ -471,7 +471,7 @@ expect(second.data.map((r) => r.id)).toEqual(first.data.map((r) => r.id));
     it('returns camelCase ProfileResponseDto for public profile', async () => {
       mockUsernamesRepository.getPublicProfileForDisplay.mockResolvedValueOnce(fullProfile);
 
-      const result = await service.getPublicProfile('alice_123');
+      const result = await service.getPublicProfileForDisplay('alice_123');
 
       expect(result).not.toBeNull();
       expect(result).toHaveProperty('primaryColor', '#6366f1');
@@ -490,7 +490,7 @@ expect(second.data.map((r) => r.id)).toEqual(first.data.map((r) => r.id));
     it('returns null for private profile', async () => {
       mockUsernamesRepository.getPublicProfileForDisplay.mockResolvedValueOnce(null);
 
-      const result = await service.getPublicProfile('private_user');
+      const result = await service.getPublicProfileForDisplay('private_user');
 
       expect(result).toBeNull();
     });
@@ -498,12 +498,11 @@ expect(second.data.map((r) => r.id)).toEqual(first.data.map((r) => r.id));
     it('returns null for non-existent profile', async () => {
       mockUsernamesRepository.getPublicProfileForDisplay.mockResolvedValueOnce(null);
 
-      const result = await service.getPublicProfile('nonexistent');
+      const result = await service.getPublicProfileForDisplay('nonexistent');
 
       expect(result).toBeNull();
     });
   });
-});
 
   describe('getRecentlyActiveUsers', () => {
     // Fixture reflects the order SupabaseService now guarantees:

@@ -185,7 +185,7 @@ describe("IndexerLagService (#1152)", () => {
     });
 
     it("stays unblocked when no contract id is configured, because lag is unknowable", async () => {
-      const service = await makeService({ quickexContractId: undefined });
+      const service = await makeService({ quickexContractId: null });
       global.fetch = jest.fn().mockResolvedValue(horizonResponse(5000)) as unknown as typeof fetch;
 
       await service.pollHorizon();

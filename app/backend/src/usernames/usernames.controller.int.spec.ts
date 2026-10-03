@@ -216,15 +216,16 @@ describe('UsernamesController', () => {
     const validProfile = {
       id: 'id-1',
       username: 'alice_123',
-      publicKey: 'GBXGQ55JMQ4L2B6E7S8Y9Z0A1B2C3D4E5F6G7H8I7YWR',
-      isPublic: true,
-      createdAt: '2025-01-01T00:00:00.000Z',
-      primaryColor: '#6366f1',
-      avatarUrl: 'https://cdn.example.com/avatar.png',
+      public_key: 'GBXGQ55JMQ4L2B6E7S8Y9Z0A1B2C3D4E5F6G7H8I7YWR1234567890AB',
+      is_public: true,
+      created_at: '2025-01-01T00:00:00.000Z',
+      last_active_at: '2025-01-01T00:00:00.000Z',
+      primary_color: '#6366f1',
+      avatar_url: 'https://cdn.example.com/avatar.png',
       bio: 'Building payments',
-      twitterHandle: 'stellarorg',
-      discordHandle: 'user#1234',
-      githubHandle: 'stellar',
+      twitter_handle: 'stellarorg',
+      discord_handle: 'user#1234',
+      github_handle: 'stellar',
     };
 
     it('returns full camelCase profile for public profile', async () => {

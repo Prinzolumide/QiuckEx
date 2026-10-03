@@ -230,6 +230,7 @@ describe("ExportGenerationHandler – email delivery (BE-101)", () => {
   });
 
   describe("execute – webhook delivery", () => {
+    let notificationService: jest.Mocked<NotificationService>;
     let notificationPrefsRepo: jest.Mocked<NotificationPreferencesRepository>;
     let jobQueueService: jest.Mocked<JobQueueService>;
     let exportStorageService: jest.Mocked<
@@ -274,6 +275,7 @@ describe("ExportGenerationHandler – email delivery (BE-101)", () => {
       }).compile();
 
       handler = module.get<ExportGenerationHandler>(ExportGenerationHandler);
+      notificationService = module.get(NotificationService);
       notificationPrefsRepo = module.get(NotificationPreferencesRepository);
       jobQueueService = module.get(JobQueueService);
       exportStorageService = module.get(ExportStorageService);
@@ -406,7 +408,7 @@ describe("ExportGenerationHandler – email delivery (BE-101)", () => {
         makeCancellationToken(),
       );
 
-      const [, payload] = jobQueueService.enqueue.mock.calls[0];
+      const [, payload] = jobQueueService.enqueue.mock.calls[0] as unknown as [unknown, { signingSecret: string }];
       expect(payload.signingSecret).toBe("whsec_test");
     });
 
@@ -421,7 +423,7 @@ describe("ExportGenerationHandler – email delivery (BE-101)", () => {
         makeCancellationToken(),
       );
 
-      const [, queued] = jobQueueService.enqueue.mock.calls[0];
+      const [, queued] = jobQueueService.enqueue.mock.calls[0] as unknown as [unknown, { payload: Record<string, unknown> }];
 
       expect(queued.payload).toEqual({
         exportType: "transactions",
@@ -452,7 +454,7 @@ describe("ExportGenerationHandler – email delivery (BE-101)", () => {
         makeCancellationToken(),
       );
 
-      const [, queued] = jobQueueService.enqueue.mock.calls[0];
+      const [, queued] = jobQueueService.enqueue.mock.calls[0] as unknown as [unknown, { relatedJobId: string }];
       expect(queued.relatedJobId).toBe("job-42");
     });
 

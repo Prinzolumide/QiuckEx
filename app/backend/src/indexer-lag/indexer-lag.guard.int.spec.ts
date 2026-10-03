@@ -16,9 +16,8 @@ import {
   Controller,
   Get,
   INestApplication,
-  APP_GUARD,
 } from "@nestjs/common";
-import { Reflector } from "@nestjs/core";
+import { Reflector, APP_GUARD } from "@nestjs/core";
 import { Test, TestingModule } from "@nestjs/testing";
 import * as request from "supertest";
 

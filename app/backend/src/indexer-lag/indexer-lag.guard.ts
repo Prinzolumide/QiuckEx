@@ -80,17 +80,21 @@ export class IndexerLagGuard implements CanActivate {
 
     const userId = (req.headers["x-user-id"] as string | undefined)?.trim();
 
-    await this.auditService.log(
-      userId ?? "anonymous",
-      "indexer_lag_guard.blocked",
-      "INDEXER_LAG",
-      {
-        ...status,
-        method: req.method,
-        path: req.path,
-        route,
-      },
-    );
+    try {
+      await this.auditService.log(
+        userId ?? "anonymous",
+        "indexer_lag_guard.blocked",
+        "INDEXER_LAG",
+        {
+          ...status,
+          method: req.method,
+          path: req.path,
+          route,
+        },
+      );
+    } catch (error) {
+      this.logger.error("Failed to audit indexer lag guard block", error);
+    }
 
     this.logger.warn(
       `IndexerLagGuard blocked ${req.method} ${route} due to indexer lag (lag=${status.lagLedgers})`,

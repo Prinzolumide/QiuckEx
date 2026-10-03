@@ -5,7 +5,7 @@ import { UpdateProfileDto } from "./update-profile.dto";
 import { GetProfileQueryDto } from "./get-profile-query.dto";
 
 describe("Profile DTOs", () => {
-  const validPublicKey = "GBXGQ55JMQ4L2B6E7S8Y9Z0A1B2C3D4E5F6G7H8I7YWR";
+  const validPublicKey = "GBXGQ55JMQ4L2B6E7S8Y9Z0A1B2C3D4E5F6G7H8I7YWR1234567890AB";
 
   describe("UpdateProfileDto", () => {
     it("accepts valid complete payload", async () => {

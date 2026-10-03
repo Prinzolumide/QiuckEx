@@ -157,8 +157,7 @@ describe('ExportsService', () => {
 
       await expect(service.requestExport(webhookRequest)).rejects.toMatchObject({
         response: {
-          code: 400,
-          error: EXPORT_WEBHOOK_TARGET_MISSING,
+          code: EXPORT_WEBHOOK_TARGET_MISSING,
         },
       });
       expect(jobQueueService.enqueue).not.toHaveBeenCalled();

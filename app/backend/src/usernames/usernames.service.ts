@@ -581,9 +581,9 @@ export class UsernamesService {
       primary_color: resolveField(dto.primaryColor, current.primary_color),
       avatar_url: resolveField(dto.avatarUrl, current.avatar_url),
       bio: resolveField(dto.bio, current.bio),
-      twitter_handle: resolveField(dto.twitterHandle, current.twitter_handle),
-      discord_handle: resolveField(dto.discordHandle, current.discord_handle),
-      github_handle: resolveField(dto.githubHandle, current.github_handle),
+      twitter_handle: resolveField(dto.twitterHandle?.replace(/^@/, ''), current.twitter_handle),
+      discord_handle: resolveField(dto.discordHandle?.replace(/^@/, ''), current.discord_handle),
+      github_handle: resolveField(dto.githubHandle?.replace(/^@/, ''), current.github_handle),
     };
 
     const updated = await this.usernamesRepository.updateProfileCustomization(
@@ -662,7 +662,7 @@ export class UsernamesService {
    * exist or is private. This replaces the two-step read that had a TOCTOU
    * window and emitted snake_case keys.
    */
-  async getPublicProfile(
+  async getPublicProfileForDisplay(
     username: string,
   ): Promise<ProfileResponseDto | null> {
     const normalized = this.normalizeUsername(username);
