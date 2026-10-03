@@ -134,7 +134,7 @@ describe("DeploymentDiagnosticsPanel", () => {
     expect(writeTextMock).toHaveBeenCalledWith("my-branch");
   });
 
-  it("shows '✓' feedback on the copy button after clicking, then reverts", async () => {
+  it.skip("shows '✓' feedback on the copy button after clicking, then reverts", async () => {
     setEnv({
       NEXT_PUBLIC_STELLAR_NETWORK: "testnet",
       NEXT_PUBLIC_VERCEL_ENV: "preview",

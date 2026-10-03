@@ -7,11 +7,6 @@ import * as Notifications from "expo-notifications";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useState } from "react";
-// Ensure web build or Expo web uses the local backend during development
-if (typeof document !== "undefined" && !(globalThis as any).API_BASE_URL) {
-  // Expo web typically runs on localhost; ensure the app hits the backend on port 4000
-  (globalThis as any).API_BASE_URL = "http://localhost:4000";
-}
 import "../src/lib/i18n";
 import { OfflineBanner } from "../components/resilience/offline-banner";
 import { PreviewEnvironmentBanner } from "../src/components/PreviewEnvironmentBanner";
@@ -31,17 +26,9 @@ import { WalletSyncBridge } from "../components/wallet/WalletSyncBridge";
 import { useDeviceTokenRegistration } from "../hooks/useDeviceTokenRegistration";
 import { registerDeviceTokenQueueHandlers } from "../services/device-token-registration";
 
-// Register offline-queue handlers for device-token register/deregister
-// retries as early as possible, so a crash mid-boot still leaves the queue
-// primed for the next flush.
-registerDeviceTokenQueueHandlers();
-
 import { resolveDeepLink, type DeepLinkRoute } from "@/utils/deep-link-routing";
 import { initializeCrashMonitoring } from "../services/crash-monitoring";
 import { IS_DEBUG_BUILD } from "../src/config/build";
-
-// Initialize crash monitoring as early as possible to catch boot exceptions
-initializeCrashMonitoring();
 import {
   routeFromNotificationResponse,
   parsePushNotificationPayload,
@@ -51,6 +38,19 @@ import {
 // ── Theme System v2 ──────────────────────────────────────────────────────────
 import { QuickExThemeProvider, useTheme } from "../src/theme/ThemeContext";
 import { invalidateOldCache } from "../services/cache";
+// Ensure web build or Expo web uses the local backend during development
+if (typeof document !== "undefined" && !(globalThis as any).API_BASE_URL) {
+  // Expo web typically runs on localhost; ensure the app hits the backend on port 4000
+  (globalThis as any).API_BASE_URL = "http://localhost:4000";
+}
+
+// Register offline-queue handlers for device-token register/deregister
+// retries as early as possible, so a crash mid-boot still leaves the queue
+// primed for the next flush.
+registerDeviceTokenQueueHandlers();
+
+// Initialize crash monitoring as early as possible to catch boot exceptions
+initializeCrashMonitoring();
 
 function useDeepLinkHandler(
   onRoute: (route: DeepLinkRoute) => void,
@@ -161,7 +161,7 @@ function ThemeBridge() {
                 even if the wallet screen isn't active. */}
               {typeof process !== 'undefined' && process.env.NODE_ENV !== "production" ? (
                 // start polling for demo address used by send_test_payment.js
-                // eslint-disable-next-line react/jsx-no-useless-fragment
+                 
                 <DevPoller />
               ) : null}
               <AppShell />
