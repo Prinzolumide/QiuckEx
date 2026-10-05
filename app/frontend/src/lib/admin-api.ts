@@ -14,7 +14,18 @@
  * - the audited actor is no longer supplied by the client — the backend
  *   derives it from the validated API key, so the spoofable `x-admin-actor`
  *   header is not sent from here.
+ *
+ * The credential comes from the same sources the rest of the admin surface
+ * already authenticates with: the admin session token issued at sign-in, the
+ * cookie / legacy session-storage credential the server-side `checkIsAdmin`
+ * gate accepts, and finally the build-time `NEXT_PUBLIC_ADMIN_API_KEY` used for
+ * local development. Sharing the resolution with `getAdminCredentialClient`
+ * keeps the client panels in sync with `app/admin/layout.tsx` — otherwise a
+ * cookie-authenticated admin would render the console but every panel would
+ * fail with `AdminCredentialError`.
  */
+
+import { getAdminCredentialClient } from "@/lib/admin-auth";
 
 const ADMIN_SESSION_TOKEN_KEY = "quickex:admin-session-token";
 
@@ -40,15 +51,29 @@ function readSessionToken(): string | null {
 }
 
 /**
- * Resolve the credential used for admin requests. A session token (rotatable,
- * not embedded in the bundle) is preferred; the build-time
- * `NEXT_PUBLIC_ADMIN_API_KEY` remains as a local-development fallback.
+ * Resolve the credential used for admin requests.
+ *
+ * Precedence:
+ * 1. the rotatable admin session token issued at sign-in (never embedded in
+ *    the bundle);
+ * 2. the admin cookie / legacy session-storage credential resolved by
+ *    `getAdminCredentialClient` — the same credential the server-side admin
+ *    gate accepts;
+ * 3. `NEXT_PUBLIC_ADMIN_API_KEY`, as a non-browser (SSR / test) fallback.
  */
 export function getAdminCredential(): string | null {
   const sessionToken = readSessionToken();
   if (sessionToken) return sessionToken;
 
-  const apiKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY;
+  const clientCredential = getAdminCredentialClient();
+  if (clientCredential && clientCredential.trim() !== "") {
+    return clientCredential.trim();
+  }
+
+  // `getAdminCredentialClient` short-circuits outside the browser, so keep an
+  // explicit env fallback for SSR and node-based tests.
+  const apiKey =
+    process.env.NEXT_PUBLIC_ADMIN_API_KEY ?? process.env.ADMIN_API_KEY;
   return apiKey && apiKey.trim() !== "" ? apiKey.trim() : null;
 }
 

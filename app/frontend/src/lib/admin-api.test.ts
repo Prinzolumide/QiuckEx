@@ -12,6 +12,7 @@ describe("adminFetch", () => {
   afterEach(() => {
     global.fetch = originalFetch;
     vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
   });
 
   it("attaches the admin credential to GET requests", async () => {
@@ -47,6 +48,42 @@ describe("adminFetch", () => {
 
     const [, init] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(new Headers(init?.headers).get("x-admin-actor")).toBeNull();
+  });
+
+  it("reuses the admin cookie the server-side admin gate accepts", async () => {
+    // The /admin layout authorises through `checkIsAdmin`, which reads the
+    // `admin_token` cookie. A signed-in admin must keep working here too, so
+    // the cookie has to resolve to a credential for the panel requests.
+    vi.stubEnv("NEXT_PUBLIC_ADMIN_API_KEY", "");
+    vi.stubGlobal("window", {
+      sessionStorage: { getItem: () => null },
+    });
+    vi.stubGlobal("document", {
+      cookie: "quickex-theme=dark; admin_token=theme-regression-admin",
+    });
+
+    expect(getAdminCredential()).toBe("theme-regression-admin");
+
+    await adminFetch("http://localhost:4000/admin/audit");
+
+    const [, init] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(new Headers(init?.headers).get("x-api-key")).toBe(
+      "theme-regression-admin",
+    );
+  });
+
+  it("prefers the admin session token over the cookie credential", async () => {
+    const sessionToken = "session-issued-at-sign-in";
+    vi.stubEnv("NEXT_PUBLIC_ADMIN_API_KEY", "");
+    vi.stubGlobal("window", {
+      sessionStorage: {
+        getItem: (key: string) =>
+          key === "quickex:admin-session-token" ? sessionToken : null,
+      },
+    });
+    vi.stubGlobal("document", { cookie: "admin_token=cookie-credential" });
+
+    expect(getAdminCredential()).toBe(sessionToken);
   });
 
   it("fails loudly and does not call fetch when no credential is configured", async () => {
