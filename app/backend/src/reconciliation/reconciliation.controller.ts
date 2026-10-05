@@ -28,10 +28,22 @@ import { RateLimitTier } from '../auth/decorators/rate-limit-group.decorator';
 import { ApiKeyGuard } from '../auth/guards/api-key.guard';
 import { RequireApiKey } from '../auth/decorators/require-api-key.decorator';
 import { RequireScopes } from '../auth/decorators/require-scopes.decorator';
+import {
+  RequiresIndexerLagCheck,
+  IndexerLagPolicy,
+} from '../indexer-lag/requires-indexer-lag-check.decorator';
 
 /**
  * Admin endpoints for the reconciliation worker and auto-match engine.
  * Every route requires a valid API key with the `admin` scope.
+ *
+ * Indexer lag guard (#1152): every route that *reports on* or *re-derives work
+ * from* indexed state fails closed while the indexer is behind, because
+ * reconciliation conclusions drawn from a stale index produce wrong match
+ * decisions. The two operator remedy routes (`unmatched/:id/resolve` and
+ * `DELETE unmatched/:id`) are deliberately left undecorated so that an operator
+ * can still clear the queue during a lag episode. See
+ * docs/INDEXER-LAG-GUARD-ROUTES.md.
  */
 @ApiTags('reconciliation')
 @Controller('reconciliation')
@@ -50,6 +62,7 @@ export class ReconciliationController {
   // ─── Run history (BE-124) ─────────────────────────────────────────────────
 
   @Get('history')
+  @RequiresIndexerLagCheck(IndexerLagPolicy.FAIL_CLOSED)
   @RateLimitTier("public-read")
   @ApiOperation({ summary: 'List reconciliation run history with per-run summaries (operators only)' })
   @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Max rows (1–100, default 20)' })
@@ -72,6 +85,7 @@ export class ReconciliationController {
   }
 
   @Get('history/:runId')
+  @RequiresIndexerLagCheck(IndexerLagPolicy.FAIL_CLOSED)
   @RateLimitTier("public-read")
   @ApiOperation({ summary: 'Get a single reconciliation run with per-run drift detail (operators only)' })
   @ApiResponse({ status: 200, description: 'Reconciliation run summary and drift detail' })
@@ -95,6 +109,7 @@ export class ReconciliationController {
   // ─── Existing reconciliation endpoints ──────────────────────────────────────
 
   @Get('status')
+  @RequiresIndexerLagCheck(IndexerLagPolicy.FAIL_CLOSED)
   @RateLimitTier("public-read")
   @ApiOperation({ summary: 'Return the status and last report of the reconciliation worker' })
   @ApiResponse({ status: 200, description: 'Current worker status' })
@@ -106,6 +121,7 @@ export class ReconciliationController {
   }
 
   @Post('trigger')
+  @RequiresIndexerLagCheck(IndexerLagPolicy.FAIL_CLOSED)
   @RateLimitTier("mutation")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Manually trigger a reconciliation run (admin only)' })
@@ -123,6 +139,7 @@ export class ReconciliationController {
   }
 
   @Post('backfill')
+  @RequiresIndexerLagCheck(IndexerLagPolicy.FAIL_CLOSED)
   @RateLimitTier("mutation")
   @HttpCode(HttpStatus.OK)
   @UseGuards(NetworkSafetyGuard)
@@ -147,6 +164,7 @@ export class ReconciliationController {
   }
 
   @Get('backfill/status')
+  @RequiresIndexerLagCheck(IndexerLagPolicy.FAIL_CLOSED)
   @RateLimitTier("public-read")
   @ApiOperation({ summary: 'Get the current backfill job progress' })
   @ApiResponse({ status: 200, description: 'Backfill progress' })
@@ -157,6 +175,7 @@ export class ReconciliationController {
   // ─── Auto-match endpoints ────────────────────────────────────────────────────
 
   @Get('auto-match/status')
+  @RequiresIndexerLagCheck(IndexerLagPolicy.FAIL_CLOSED)
   @RateLimitTier("public-read")
   @ApiOperation({ summary: 'Return the current status of the auto-match engine' })
   @ApiResponse({ status: 200, description: 'Auto-match engine status' })
@@ -165,6 +184,7 @@ export class ReconciliationController {
   }
 
   @Post('auto-match/trigger')
+  @RequiresIndexerLagCheck(IndexerLagPolicy.FAIL_CLOSED)
   @RateLimitTier("mutation")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Manually trigger an auto-match cycle (admin only)' })
@@ -187,6 +207,7 @@ export class ReconciliationController {
    * Useful for replaying a specific transaction or testing the scoring logic.
    */
   @Post('auto-match/process')
+  @RequiresIndexerLagCheck(IndexerLagPolicy.FAIL_CLOSED)
   @RateLimitTier("mutation")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Score and process a single transaction on demand (admin only)' })
@@ -198,6 +219,7 @@ export class ReconciliationController {
   // ─── Unmatched transactions queue ────────────────────────────────────────────
 
   @Get('unmatched')
+  @RequiresIndexerLagCheck(IndexerLagPolicy.FAIL_CLOSED)
   @RateLimitTier("public-read")
   @ApiOperation({ summary: 'List pending unmatched transactions awaiting manual review' })
   @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Max rows (1–100, default 20)' })
@@ -213,6 +235,7 @@ export class ReconciliationController {
   }
 
   @Get('unmatched/:id')
+  @RequiresIndexerLagCheck(IndexerLagPolicy.FAIL_CLOSED)
   @RateLimitTier("public-read")
   @ApiOperation({ summary: 'Get a single unmatched transaction by ID' })
   @ApiResponse({ status: 200, description: 'Unmatched transaction details' })

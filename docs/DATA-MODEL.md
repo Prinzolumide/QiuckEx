@@ -231,12 +231,12 @@ Supporting tables (ingestion, refunds, job queue, contracts, previews, abuse, cr
 
 #### `usernames`
 - **Owning module:** `usernames` *(via `SupabaseService`; also read by `links`, `health`, `environment-parity`)*
-- **Defined in:** `20250219000000_create_usernames_table.sql`; altered by `20250327000000_add_username_visibility.sql` and `20260724000000_add_username_featured.sql`
+- **Defined in:** `20250219000000_create_usernames_table.sql`; altered by `20250327000000_add_username_visibility.sql`, `20260724000000_add_username_featured.sql`, and `20260831000000_add_profile_customization_fields.sql`
 - **PK:** `id uuid`
 - **Unique:** `username` (with `CHECK username = lower(username)`)
 - **Referenced by:** `username_marketplace.username` (FK, `ON DELETE CASCADE`)
-- **Columns:** `id`, `username`, `public_key`, `created_at`, `is_public`, `last_active_at`, `is_featured`, `featured_rank`
-- **Notes:** A single `public_key` can own several usernames. The fuzzy-search function is added in `20250327000001_add_fuzzy_search_function.sql`.
+- **Columns:** `id`, `username`, `public_key`, `created_at`, `is_public`, `last_active_at`, `is_featured`, `featured_rank`, `primary_color`, `avatar_url`, `bio`, `twitter_handle`, `discord_handle`, `github_handle`
+- **Notes:** A single `public_key` can own several usernames. The fuzzy-search function is added in `20250327000001_add_fuzzy_search_function.sql`. The profile customization columns are read/written by `GET`/`PUT /profile`; `username` is not editable through that route because renaming cascades into `username_marketplace`. `primary_color` carries a `CHECK (primary_color IS NULL OR primary_color ~ '^#[0-9a-fA-F]{6}$')` because it is interpolated into inline styles.
 
 ### Marketplace
 

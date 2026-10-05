@@ -10,10 +10,11 @@ import { ExportsController } from './exports.controller';
 import { ExportStorageModule } from './export-storage.module';
 import { JobQueueModule } from '../job-queue/job-queue.module';
 import { ApiKeysModule } from '../api-keys/api-keys.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { ExportsService } from './exports.service';
 
 @Module({
-  imports: [JobQueueModule, ApiKeysModule, ExportStorageModule],
+  imports: [JobQueueModule, ApiKeysModule, ExportStorageModule, NotificationsModule],
   controllers: [ExportsController],
   providers: [ExportsService],
 })

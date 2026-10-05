@@ -15,6 +15,7 @@ import { NotificationService } from '../../notifications/notification.service';
 import { ExportCompletedPayload } from '../../notifications/types/notification.types';
 import { ExportStorageService } from '../../exports/export-storage.service';
 import { NotificationPreferencesRepository } from '../../notifications/notification-preferences.repository';
+import { isDeliverableWebhookUrl } from '../../notifications/webhook-target.util';
 import { JobQueueService } from '../job-queue.service';
 import { JobType } from '../types';
 
@@ -277,13 +278,32 @@ export class ExportGenerationHandler implements JobHandler<ExportGenerationPaylo
       case 'webhook': {
         // Get user's webhook preference
         const webhookPrefs = await this.notificationPrefsRepo.getWebhooksByPublicKey(userId);
-        const webhookPref = webhookPrefs.find(p => p.enabled && p.webhookUrl);
+        const webhookPref = webhookPrefs.find(
+          p => p.enabled && isDeliverableWebhookUrl(p.webhookUrl),
+        );
 
         if (!webhookPref || !webhookPref.webhookUrl) {
-          const errorMessage = `No enabled webhook URL found for user ${userId}`;
+          const errorMessage = `No enabled https webhook URL found for user ${userId}`;
           this.logger.error(errorMessage);
           throw new Error(errorMessage);
         }
+
+        // The raw export body is never sent over the webhook. Store the
+        // artifact and hand the recipient a time-limited signed download
+        // reference instead, so exports containing customer PII are only
+        // retrievable by a holder of the scoped, expiring token.
+        const { storageKey, sizeBytes } = await this.exportStorageService.uploadArtifact({
+          jobId,
+          userId,
+          content: exportData,
+          format: format as 'csv' | 'json',
+          exportType,
+        });
+
+        const { token, expiresAt } = this.exportStorageService.issueDownloadToken({
+          jobId,
+          userId,
+        });
 
         // Enqueue webhook delivery job
         await this.jobQueueService.enqueue(JobType.WEBHOOK_DELIVERY, {
@@ -291,18 +311,28 @@ export class ExportGenerationHandler implements JobHandler<ExportGenerationPaylo
           webhookUrl: webhookPref.webhookUrl,
           eventType: 'export.completed',
           eventId: `export:${jobId}`,
+          // HMAC-sign the delivery using the registered webhook secret.
+          signingSecret: webhookPref.webhookSecret,
+          // Attribute a permanent delivery failure back to this export job so
+          // it is not reported as a successful delivery.
+          relatedJobId: jobId,
           payload: {
             exportType,
             format,
             recordCount,
             jobId,
-            sizeBytes: Buffer.byteLength(exportData, 'utf8'),
-            data: exportData,
+            sizeBytes,
+            downloadReference: {
+              storageKey,
+              userId,
+              token,
+              tokenExpiresAt: expiresAt,
+            },
           },
         });
 
         this.logger.log(
-          `Webhook delivery enqueued for user ${userId} (jobId: ${jobId}, url: ${webhookPref.webhookUrl})`,
+          `Webhook delivery enqueued for user ${userId} (jobId: ${jobId}, url: ${webhookPref.webhookUrl}, signed: ${webhookPref.webhookSecret ? 'yes' : 'no'}, downloadExpiresAt: ${new Date(expiresAt * 1000).toISOString()})`,
         );
         break;
       }

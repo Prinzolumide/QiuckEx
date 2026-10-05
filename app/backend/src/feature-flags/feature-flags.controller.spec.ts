@@ -1,5 +1,6 @@
 import { FeatureFlagsController } from './feature-flags.controller';
 import { Reflector } from '@nestjs/core';
+import { Type } from '@nestjs/common';
 import { ApiKeyGuard } from '../auth/guards/api-key.guard';
 import { REQUIRED_SCOPES_KEY } from '../auth/decorators/require-scopes.decorator';
 
@@ -28,7 +29,7 @@ describe('FeatureFlagsController', () => {
         const method = FeatureFlagsController.prototype[methodName];
 
         // Check for ApiKeyGuard
-        const guards = reflector.getAllAndOverride<Class[]>('__guards__', [method, FeatureFlagsController]);
+        const guards = reflector.getAllAndOverride<Type<unknown>[]>('__guards__', [method, FeatureFlagsController]);
         expect(guards).toContain(ApiKeyGuard);
 
         // Check for RequireScopes('admin')
@@ -45,7 +46,7 @@ describe('FeatureFlagsController', () => {
         const method = FeatureFlagsController.prototype[methodName];
 
         // Check for ApiKeyGuard - should not be present (or if present, it should be from a parent class? but we override)
-        const guards = reflector.getAllAndOverride<Class[]>('__guards__', [method, FeatureFlagsController]);
+        const guards = reflector.getAllAndOverride<Type<unknown>[]>('__guards__', [method, FeatureFlagsController]);
         // We expect that the method does not have ApiKeyGuard from its own decorators.
         // However, the controller class might have guards? In our case, we didn't add any at the class level.
         // So we expect guards to be undefined or not contain ApiKeyGuard.

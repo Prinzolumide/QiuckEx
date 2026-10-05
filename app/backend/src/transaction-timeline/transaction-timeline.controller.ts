@@ -16,6 +16,10 @@ import { TransactionTimelineService } from './transaction-timeline.service';
 import { GetTimelineQueryDto } from './dto/get-timeline.dto';
 import type { TimelineResponse } from './transaction-timeline.types';
 import { RateLimitTier } from '../auth/decorators/rate-limit-group.decorator';
+import {
+  RequiresIndexerLagCheck,
+  IndexerLagPolicy,
+} from '../indexer-lag/requires-indexer-lag-check.decorator';
 
 @ApiTags('transaction-timeline')
 @Controller('transaction-timeline')
@@ -35,6 +39,12 @@ export class TransactionTimelineController {
   @Get()
   @RateLimitTier("search")
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+  // Every event kind on this route is read from indexed tables
+  // (payment_records, refund_attempts, notification_log,
+  // contract_change_webhooks). A partially-written timeline reads as "this
+  // transaction did fewer things than it did", which is worse than an honest
+  // 503, so this route fails closed. See docs/INDEXER-LAG-GUARD-ROUTES.md.
+  @RequiresIndexerLagCheck(IndexerLagPolicy.FAIL_CLOSED)
   @ApiOperation({
     summary: 'Get aggregated transaction timeline',
     description:
