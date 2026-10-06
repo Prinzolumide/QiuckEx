@@ -72,6 +72,39 @@ async function seedTheme(page: Page, theme: Theme): Promise<void> {
   );
 }
 
+/** Wallet session the app restores on boot (see useWallet's storage key). */
+const DEMO_WALLET = {
+  publicKey: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+  network: "testnet",
+  walletType: "freighter",
+  connectedAt: 0,
+} as const;
+
+/**
+ * Seed a connected wallet. `/settings` and `/dashboard` only render their
+ * themeable surfaces once `useWallet` has restored a session, and it keeps a
+ * stored session only when the injected provider answers with the same key.
+ */
+async function seedWallet(page: Page): Promise<void> {
+  await page.addInitScript((wallet) => {
+    const freighter = {
+      requestAccess: async () => ({ address: wallet.publicKey }),
+      getPublicKey: async () => ({ address: wallet.publicKey }),
+      getNetwork: async () => ({ network: "TESTNET" }),
+      signTransaction: async () => ({ signedTxXdr: "" }),
+    };
+    (window as unknown as { freighter?: unknown }).freighter = freighter;
+    try {
+      window.localStorage.setItem(
+        "quickex.wallet.session",
+        JSON.stringify(wallet),
+      );
+    } catch {
+      // Storage disabled — the restored key comes from the injected provider.
+    }
+  }, DEMO_WALLET);
+}
+
 /**
  * Prepare a fresh page for a themed screenshot: seed the theme, freeze the
  * clock, mock the backend, then navigate.
@@ -83,6 +116,7 @@ async function openThemed(
   options: { paymentState?: "ACTIVE" | "PAID" } = {},
 ): Promise<void> {
   await seedTheme(page, theme);
+  await seedWallet(page);
   await page.clock.install({ time: new Date(FIXED_TIME) });
   await mockBackend(page, options);
   if (path === "/admin") {
